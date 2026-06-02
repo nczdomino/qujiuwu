@@ -3,48 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>银行谈判项目分工系统</title>
+<title>银行项目全流程管理系统</title>
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
 <header>
-    <h1>📊 银行谈判项目分工</h1>
-    <p>Deadline: <b>11 / 06</b></p>
+    <h1>📊 银行谈判项目管理系统</h1>
+    <p>📅 Deadline: 11/06 | 全流程可视化任务系统</p>
 </header>
 
 <div class="container">
 
-<!-- ADD TASK -->
 <div class="card">
-    <h2>➕ 添加任务</h2>
+    <h2>🎯 选择成员自动生成完整任务流程</h2>
 
-    <input id="name" placeholder="👤 成员姓名">
-
-    <select id="role">
-        <option>Company / 公司介绍</option>
-        <option>Business Model / 商业模式</option>
-        <option>Financing Needs / 融资需求</option>
-        <option>Risk Analysis / 风险分析</option>
-        <option>Bank Cooperation / 银行合作</option>
-        <option>Negotiation Strategy / 谈判策略</option>
-        <option>Final Editor / 总整合</option>
+    <select id="name" onchange="autoFill()">
+        <option value="">-- 选择成员 --</option>
+        <option value="聂诚忠">聂诚忠 (Final Leader)</option>
+        <option value="黄氏翠姮">黄氏翠姮 (Funding)</option>
+        <option value="林姿彤">林姿彤 (Company)</option>
+        <option value="久米秋惠">久米秋惠 (Risk)</option>
+        <option value="岩井优美">岩井优美 (Negotiation)</option>
     </select>
-
-    <textarea id="detail" placeholder="📌 任务详细要求（写清楚内容）"></textarea>
-
-    <input id="slide" placeholder="📊 PPT Slide (vd: Slide 2)">
-    <input id="word" placeholder="📄 Word Output yêu cầu">
-    <input id="speech" placeholder="🗣️ Speaking time (1-2 phút)">
-
-    <button onclick="addTask()">➕ Add Task</button>
 </div>
 
-<!-- LIST -->
-<div id="list"></div>
-
-<button onclick="exportData()">📤 Export JSON</button>
+<div id="output"></div>
 
 </div>
 
