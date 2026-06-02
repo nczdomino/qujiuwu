@@ -3,29 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>银行项目全流程管理系统</title>
+<title>银行谈判作业执行系统</title>
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
 <header>
-    <h1>📊 银行谈判项目管理系统</h1>
-    <p>📅 Deadline: 11/06 | 全流程可视化任务系统</p>
+    <h1>📊 银行谈判作业执行系统</h1>
+    <p>点击姓名 → 获取完整“从0到提交”执行流程</p>
 </header>
 
 <div class="container">
 
 <div class="card">
-    <h2>🎯 选择成员自动生成完整任务流程</h2>
+    <h2>👥 选择成员</h2>
 
-    <select id="name" onchange="autoFill()">
-        <option value="">-- 选择成员 --</option>
-        <option value="聂诚忠">聂诚忠 (Final Leader)</option>
-        <option value="黄氏翠姮">黄氏翠姮 (Funding)</option>
-        <option value="林姿彤">林姿彤 (Company)</option>
-        <option value="久米秋惠">久米秋惠 (Risk)</option>
-        <option value="岩井优美">岩井优美 (Negotiation)</option>
+    <select id="name" onchange="showTask()">
+        <option value="">-- 请选择成员 --</option>
+        <option value="林姿彤">林姿彤</option>
+        <option value="黄氏翠姮">黄氏翠姮</option>
+        <option value="久米秋惠">久米秋惠</option>
+        <option value="岩井优美">岩井优美</option>
+        <option value="聂诚忠">聂诚忠</option>
     </select>
 </div>
 
