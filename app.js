@@ -30,6 +30,17 @@ document.addEventListener('DOMContentLoaded', function() {
     loadEmployees();
     loadSchedules();
     setupEventListeners();
+    // Connection status
+    database.ref('.info/connected').on('value', (snap) => {
+        const status = document.getElementById('connectionStatus');
+        if (snap.val() === true) {
+            status.innerHTML = '<i class="fas fa-wifi"></i><span data-lang="ja">接続済み</span><span data-lang="zh" style="display:none">已连接</span>';
+            status.className = 'connection-status connected';
+        } else {
+            status.innerHTML = '<i class="fas fa-wifi-slash"></i><span data-lang="ja">接続切れ</span><span data-lang="zh" style="display:none">未连接</span>';
+            status.className = 'connection-status disconnected';
+        }
+    });
     console.log("✅ アプリ初期化完了");
 });
 
