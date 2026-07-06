@@ -286,15 +286,15 @@
                 </div>
 
                 <div class="position-filter">
-                    <button class="filter-btn active" onclick="filterEmployees('all')">
+                    <button class="filter-btn active" data-position="all" onclick="filterEmployees('all')">
                         <span data-lang="ja">全て</span>
                         <span data-lang="zh" style="display:none">全部</span>
                     </button>
-                    <button class="filter-btn" onclick="filterEmployees('前台/服务区')">
+                    <button class="filter-btn" data-position="前台/服务区" onclick="filterEmployees('前台/服务区')">
                         <span data-lang="ja">フロント</span>
                         <span data-lang="zh" style="display:none">前台</span>
                     </button>
-                    <button class="filter-btn" onclick="filterEmployees('厨房区')">
+                    <button class="filter-btn" data-position="厨房区" onclick="filterEmployees('厨房区')">
                         <span data-lang="ja">厨房</span>
                         <span data-lang="zh" style="display:none">厨房</span>
                     </button>
