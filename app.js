@@ -305,6 +305,17 @@ function validateTimeRange(startTime, endTime) {
     return true;
 }
 
+// ==================== HOURS ROUNDING HELPER ====================
+// Dùng chung cho MỌI nơi hiển thị số giờ, để tránh lỗi cộng dồn số thực
+// (floating point) gây ra các số lẻ dài kiểu 146.22222222h
+function roundHours(value, decimals = 1) {
+    if (typeof value !== 'number' || !isFinite(value)) return 0;
+    const factor = Math.pow(10, decimals);
+    let rounded = Math.round((value + Number.EPSILON) * factor) / factor;
+    if (Object.is(rounded, -0)) rounded = 0;
+    return rounded;
+}
+
 function calculateShiftHours(startTime, endTime) {
     if (!startTime || !endTime) {
         return 0;
@@ -330,7 +341,7 @@ function calculateShiftHours(startTime, endTime) {
     }
     
     const workHours = workMinutes / 60;
-    return Math.round(workHours * 100) / 100;
+    return roundHours(workHours, 2);
 }
 
 // ==================== VIEW MANAGEMENT ====================
@@ -398,6 +409,7 @@ function loadEmployees() {
         
         renderEmployeeCards();
         updateAllEmployeeSelects();
+        renderWeeklySchedule();
     }, (error) => {
         console.error("Error loading employees:", error);
         showMessage("Error loading employees", "error");
@@ -476,6 +488,44 @@ function renderEmployeeCards() {
     container.innerHTML = html;
 }
 
+// Trả về mảng 7 phần tử mô tả trạng thái từng ngày trong tuần của 1 nhân viên
+// status: 'work' | 'rest' | 'none'
+function getWeekPattern(employeeId, weekOffset = 0) {
+    const { startDate } = getWeekDates(weekOffset);
+    const endDate = new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
+    const weekSchedule = getEmployeeSchedulesForWeek(employeeId, startDate, endDate);
+    const days = generateWeekDays(startDate);
+    const dayLetters = currentLanguage === 'ja' 
+        ? ['月', '火', '水', '木', '金', '土', '日']
+        : ['一', '二', '三', '四', '五', '六', '日'];
+    
+    return days.map((day, index) => {
+        const schedule = weekSchedule.find(s => s.date === day.dateString);
+        let status = 'none';
+        let timeLabel = '';
+        if (schedule) {
+            status = schedule.isDayOff ? 'rest' : 'work';
+            if (!schedule.isDayOff && schedule.startTime && schedule.endTime) {
+                timeLabel = `${schedule.startTime.substring(0,5)}-${schedule.endTime.substring(0,5)}`;
+            }
+        }
+        return { letter: dayLetters[index], status, timeLabel, dateString: day.dateString };
+    });
+}
+
+function generateWeekPatternHtml(employeeId, weekOffset = 0) {
+    const pattern = getWeekPattern(employeeId, weekOffset);
+    return `
+        <div class="week-pattern-strip">
+            ${pattern.map(day => `
+                <div class="week-pattern-dot ${day.status}" title="${day.letter}${day.timeLabel ? ' ' + day.timeLabel : ''}">
+                    <span>${day.letter}</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
 function generateEmployeeCard(employee) {
     const weeklyHours = calculateWeeklyHours(employee.id);
     const monthlyHours = calculateMonthlyHours(employee.id);
@@ -487,41 +537,44 @@ function generateEmployeeCard(employee) {
     
     return `
         <div class="employee-card" onclick="showEmployeeDetail('${employee.id}')">
-            <div class="employee-avatar">
-                ${employee.name.charAt(0)}
-            </div>
-            <div class="employee-info">
-                <div class="employee-name">${employee.name}</div>
-                <div class="employee-position ${employee.position === '厨房区' ? 'kitchen' : 'front-desk'}">
-                    <i class="fas ${employee.position === '厨房区' ? 'fa-utensils' : 'fa-door-open'}"></i>
-                    ${positionDisplay}
+            <div class="employee-card-top">
+                <div class="employee-avatar">
+                    ${employee.name.charAt(0)}
                 </div>
-                <div class="employee-stats">
-                    <div class="stat-item">
-                        <i class="fas fa-clock" style="color: var(--primary);"></i>
-                        <span style="color: var(--gray-600);">
-                            ${currentLanguage === 'ja' ? '今週:' : '本周:'}
-                        </span>
-                        <span class="stat-value">${weeklyHours}h</span>
+                <div class="employee-info">
+                    <div class="employee-name">${employee.name}</div>
+                    <div class="employee-position ${employee.position === '厨房区' ? 'kitchen' : 'front-desk'}">
+                        <i class="fas ${employee.position === '厨房区' ? 'fa-utensils' : 'fa-door-open'}"></i>
+                        ${positionDisplay}
                     </div>
-                    <div class="stat-item">
-                        <i class="fas fa-calendar-alt" style="color: var(--primary);"></i>
-                        <span style="color: var(--gray-600);">
-                            ${currentLanguage === 'ja' ? '今月:' : '本月:'}
-                        </span>
-                        <span class="stat-value">${monthlyHours}h</span>
-                    </div>
-                    <div class="stat-item">
-                        <i class="fas fa-calendar-check" style="color: var(--primary);"></i>
-                        <span style="color: var(--gray-600);">
-                            ${weekSchedule.workDays} ${currentLanguage === 'ja' ? '勤務' : '班'}
-                        </span>
+                    <div class="employee-stats">
+                        <div class="stat-item">
+                            <i class="fas fa-clock" style="color: var(--primary);"></i>
+                            <span style="color: var(--gray-600);">
+                                ${currentLanguage === 'ja' ? '今週:' : '本周:'}
+                            </span>
+                            <span class="stat-value">${weeklyHours}h</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-calendar-alt" style="color: var(--primary);"></i>
+                            <span style="color: var(--gray-600);">
+                                ${currentLanguage === 'ja' ? '今月:' : '本月:'}
+                            </span>
+                            <span class="stat-value">${monthlyHours}h</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-calendar-check" style="color: var(--primary);"></i>
+                            <span style="color: var(--gray-600);">
+                                ${weekSchedule.workDays} ${currentLanguage === 'ja' ? '勤務' : '班'}
+                            </span>
+                        </div>
                     </div>
                 </div>
+                <div class="employee-arrow">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
             </div>
-            <div class="employee-arrow">
-                <i class="fas fa-chevron-right"></i>
-            </div>
+            ${generateWeekPatternHtml(employee.id, 0)}
         </div>
     `;
 }
@@ -536,9 +589,7 @@ function filterEmployees(position) {
         btn.classList.remove('active');
     });
     
-    const filterBtn = position === 'all' 
-        ? document.querySelector('.filter-btn') 
-        : document.querySelector(`.filter-btn[onclick*="${position}"]`);
+    const filterBtn = document.querySelector(`.filter-btn[data-position="${position}"]`);
     
     if (filterBtn) {
         filterBtn.classList.add('active');
@@ -597,7 +648,11 @@ function showEmployeeWeekSchedule(employeeId) {
         
         if (schedule) {
             status = schedule.isDayOff ? 'rest' : 'work';
-            timeText = schedule.isDayOff ? '' : `
+            timeText = schedule.isDayOff ? `
+                <div style="font-size: 11px; margin-top: 4px; font-weight: 600; color: var(--warning);">
+                    ${currentLanguage === 'ja' ? '休み' : '休息'}
+                </div>
+            ` : `
                 <div style="font-size: 11px; margin-top: 4px; font-weight: 600; color: var(--success);">
                     ${schedule.startTime.substring(0, 5)}-${schedule.endTime.substring(0, 5)}
                 </div>
@@ -1328,6 +1383,63 @@ function applyRestDays() {
 }
 
 // ==================== WEEKLY VIEW ====================
+function buildWeeklyRowHtml(employee, days, schedulesByEmployee) {
+    const employeeSchedules = schedulesByEmployee[employee.id] || {};
+    const weeklyHours = calculateWeeklyHours(employee.id);
+    
+    const positionDisplay = currentLanguage === 'ja' 
+        ? (employee.position === '厨房区' ? '厨房' : 'フロント')
+        : (employee.position === '厨房区' ? '厨房' : '前台');
+    
+    return `
+        <div class="week-row">
+            <div class="week-cell">
+                <div style="font-weight: 700; font-size: 0.8rem; color: var(--dark); margin-bottom: 2px;">${employee.name}</div>
+                <div style="font-size: 0.7rem; color: var(--gray-500); margin-bottom: 4px;">${positionDisplay}</div>
+                <div style="font-size: 0.65rem; color: var(--primary); font-weight: 600;">
+                    <i class="fas fa-clock" style="font-size: 0.6rem; margin-right: 2px;"></i>
+                    ${weeklyHours}h
+                </div>
+            </div>
+            ${days.map(day => {
+                const schedule = employeeSchedules[day.dateString];
+                let scheduleClass = 'empty';
+                let scheduleText = '';
+                
+                if (schedule) {
+                    if (schedule.isDayOff) {
+                        scheduleClass = 'rest';
+                        scheduleText = currentLanguage === 'ja' ? '休' : '休';
+                    } else {
+                        scheduleClass = 'work';
+                        scheduleText = `
+                            <div class="compact-time">
+                                <span>${schedule.startTime ? schedule.startTime.substring(0, 5) : ''}</span>
+                                <span>${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}</span>
+                            </div>
+                        `;
+                    }
+                }
+                
+                const title = schedule ? (schedule.isDayOff ? 
+                    (currentLanguage === 'ja' ? '休み' : '休息') : 
+                    `${schedule.startTime || ''}-${schedule.endTime || ''}`) : 
+                    (currentLanguage === 'ja' ? 'クリックで追加' : '点击添加');
+                
+                return `
+                    <div class="week-cell">
+                        <div class="day-schedule-item ${scheduleClass}" 
+                             onclick="editDaySchedule('${employee.id}', '${day.dateString}')"
+                             title="${title}">
+                            ${scheduleText || (currentLanguage === 'ja' ? '追加' : '加')}
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
 function renderWeeklySchedule() {
     const container = document.getElementById('weeklySchedule');
     if (!container) return;
@@ -1367,64 +1479,41 @@ function renderWeeklySchedule() {
         </div>
     `;
     
-    employees.forEach(employee => {
-        const employeeSchedules = schedulesByEmployee[employee.id] || {};
-        const weeklyHours = calculateWeeklyHours(employee.id);
-        
-        const positionDisplay = currentLanguage === 'ja' 
-            ? (employee.position === '厨房区' ? '厨房' : 'フロント')
-            : (employee.position === '厨房区' ? '厨房' : '前台');
-        
+    // Tách rõ 2 nhóm: Front desk / Kitchen, mỗi nhóm có dải tiêu đề riêng
+    const frontDeskEmployees = employees.filter(e => e.position === '前台/服务区');
+    const kitchenEmployees = employees.filter(e => e.position === '厨房区');
+    
+    if (frontDeskEmployees.length > 0) {
+        const title = currentLanguage === 'ja' ? 'フロント / サービス' : '前台 / 服务';
         html += `
-            <div class="week-row">
-                <div class="week-cell">
-                    <div style="font-weight: 700; font-size: 0.8rem; color: var(--dark); margin-bottom: 2px;">${employee.name}</div>
-                    <div style="font-size: 0.7rem; color: var(--gray-500); margin-bottom: 4px;">${positionDisplay}</div>
-                    <div style="font-size: 0.65rem; color: var(--primary); font-weight: 600;">
-                        <i class="fas fa-clock" style="font-size: 0.6rem; margin-right: 2px;"></i>
-                        ${weeklyHours}h
-                    </div>
-                </div>
-                ${days.map(day => {
-                    const schedule = employeeSchedules[day.dateString];
-                    let scheduleClass = 'empty';
-                    let scheduleText = '';
-                    
-                    if (schedule) {
-                        if (schedule.isDayOff) {
-                            scheduleClass = 'rest';
-                            scheduleText = currentLanguage === 'ja' ? '休' : '休';
-                        } else {
-                            scheduleClass = 'work';
-                            scheduleText = `
-                                <div class="compact-time">
-                                    <span>${schedule.startTime ? schedule.startTime.substring(0, 5) : ''}</span>
-                                    <span>${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}</span>
-                                </div>
-                            `;
-                        }
-                    }
-                    
-                    const title = schedule ? (schedule.isDayOff ? 
-                        (currentLanguage === 'ja' ? '休み' : '休息') : 
-                        `${schedule.startTime || ''}-${schedule.endTime || ''}`) : 
-                        (currentLanguage === 'ja' ? 'クリックで追加' : '点击添加');
-                    
-                    return `
-                        <div class="week-cell">
-                            <div class="day-schedule-item ${scheduleClass}" 
-                                 onclick="editDaySchedule('${employee.id}', '${day.dateString}')"
-                                 title="${title}">
-                                ${scheduleText || (currentLanguage === 'ja' ? '追加' : '加')}
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
+            <div class="week-position-header front-desk">
+                <i class="fas fa-door-open"></i> ${title}
+                <span class="week-position-count">${frontDeskEmployees.length}</span>
             </div>
         `;
-    });
+        frontDeskEmployees.forEach(employee => {
+            html += buildWeeklyRowHtml(employee, days, schedulesByEmployee);
+        });
+    }
     
-    container.innerHTML = html || `<div class="empty-state"><p>${currentLanguage === 'ja' ? 'スケジュールデータがありません' : '没有排班数据'}</p></div>`;
+    if (kitchenEmployees.length > 0) {
+        const title = currentLanguage === 'ja' ? '厨房' : '厨房';
+        html += `
+            <div class="week-position-header kitchen">
+                <i class="fas fa-utensils"></i> ${title}
+                <span class="week-position-count">${kitchenEmployees.length}</span>
+            </div>
+        `;
+        kitchenEmployees.forEach(employee => {
+            html += buildWeeklyRowHtml(employee, days, schedulesByEmployee);
+        });
+    }
+    
+    if (employees.length === 0) {
+        html = `<div class="empty-state"><p>${currentLanguage === 'ja' ? 'スケジュールデータがありません' : '没有排班数据'}</p></div>`;
+    }
+    
+    container.innerHTML = html;
     
     const weekRange = document.getElementById('weekRange');
     if (weekRange) {
@@ -1745,7 +1834,7 @@ function calculateWeeklyHours(employeeId) {
         }
     });
     
-    return Math.round(totalHours * 10) / 10;
+    return roundHours(totalHours, 1);
 }
 
 function calculateMonthlyHours(employeeId) {
@@ -1769,7 +1858,7 @@ function calculateMonthlyHours(employeeId) {
         }
     });
     
-    return Math.round(totalHours * 10) / 10;
+    return roundHours(totalHours, 1);
 }
 
 function getThisWeekSchedule(employeeId) {
@@ -2228,6 +2317,14 @@ function printAllSchedule() {
                     font-weight: bold;
                     font-size: 9px;
                 }
+                .position-band-row td {
+                    background: #e6f0ff !important;
+                    color: #1e40af !important;
+                    font-weight: bold;
+                    text-align: left;
+                    padding-left: 6px;
+                    font-size: 9px;
+                }
                 @media print { 
                     @page { 
                         margin: 0.3cm; 
@@ -2298,53 +2395,65 @@ function printAllSchedule() {
         }
     });
     
-    // Employee rows
-    employees.forEach(employee => {
-        const employeeSchedules = schedulesByEmployee[employee.id] || {};
-        const weeklyHours = calculateWeeklyHours(employee.id);
+    // Helper to render one group of employees (front-desk / kitchen) with a band row
+    function renderPrintGroup(groupLabel, groupEmployees) {
+        if (groupEmployees.length === 0) return '';
         
-        // Position display
-        const positionDisplay = currentLanguage === 'ja' 
-            ? (employee.position === '厨房区' ? '厨房' : 'フロント')
-            : (employee.position === '厨房区' ? '厨房' : '前台');
+        let groupHtml = `<tr class="position-band-row"><td colspan="${days.length + 1}">${groupLabel}</td></tr>`;
         
-        printContent += `
-            <tr>
-                <td class="employee-name-cell">
-                    <div>${employee.name}</div>
-                    <div style="font-size: 7px; color: #666;">${positionDisplay}</div>
-                    <div style="font-size: 7px; color: #2563eb; font-weight: bold;">${weeklyHours}h</div>
-                </td>
-        `;
-        
-        // Day cells
-        days.forEach(day => {
-            const schedule = employeeSchedules[day.dateString];
-            let cellClass = 'empty-cell';
-            let cellContent = '<div style="font-size: 7px; color: #cbd5e1;">-</div>';
+        groupEmployees.forEach(employee => {
+            const employeeSchedules = schedulesByEmployee[employee.id] || {};
+            const weeklyHours = calculateWeeklyHours(employee.id);
             
-            if (schedule) {
-                if (schedule.isDayOff) {
-                    cellClass = 'rest-cell';
-                    cellContent = `<div style="font-size: 8px; font-weight: bold;">${currentLanguage === 'ja' ? '休' : '休'}</div>`;
-                } else {
-                    cellClass = 'work-cell';
-                    const hours = calculateShiftHours(schedule.startTime, schedule.endTime);
-                    cellContent = `
-                        <div class="time-display">
-                            <div>${schedule.startTime ? schedule.startTime.substring(0, 5) : ''}</div>
-                            <div>${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}</div>
-                            <div style="font-weight: bold;">${hours}h</div>
-                        </div>
-                    `;
+            const positionDisplay = currentLanguage === 'ja' 
+                ? (employee.position === '厨房区' ? '厨房' : 'フロント')
+                : (employee.position === '厨房区' ? '厨房' : '前台');
+            
+            groupHtml += `
+                <tr>
+                    <td class="employee-name-cell">
+                        <div>${employee.name}</div>
+                        <div style="font-size: 7px; color: #666;">${positionDisplay}</div>
+                        <div style="font-size: 7px; color: #2563eb; font-weight: bold;">${weeklyHours}h</div>
+                    </td>
+            `;
+            
+            days.forEach(day => {
+                const schedule = employeeSchedules[day.dateString];
+                let cellClass = 'empty-cell';
+                let cellContent = '<div style="font-size: 7px; color: #cbd5e1;">-</div>';
+                
+                if (schedule) {
+                    if (schedule.isDayOff) {
+                        cellClass = 'rest-cell';
+                        cellContent = `<div style="font-size: 8px; font-weight: bold;">${currentLanguage === 'ja' ? '休' : '休'}</div>`;
+                    } else {
+                        cellClass = 'work-cell';
+                        const hours = calculateShiftHours(schedule.startTime, schedule.endTime);
+                        cellContent = `
+                            <div class="time-display">
+                                <div>${schedule.startTime ? schedule.startTime.substring(0, 5) : ''}</div>
+                                <div>${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}</div>
+                                <div style="font-weight: bold;">${hours}h</div>
+                            </div>
+                        `;
+                    }
                 }
-            }
+                
+                groupHtml += `<td class="${cellClass}">${cellContent}</td>`;
+            });
             
-            printContent += `<td class="${cellClass}">${cellContent}</td>`;
+            groupHtml += `</tr>`;
         });
         
-        printContent += `</tr>`;
-    });
+        return groupHtml;
+    }
+    
+    const frontDeskEmployees = employees.filter(e => e.position === '前台/服务区');
+    const kitchenEmployees = employees.filter(e => e.position === '厨房区');
+    
+    printContent += renderPrintGroup(currentLanguage === 'ja' ? 'フロント / サービス' : '前台 / 服务', frontDeskEmployees);
+    printContent += renderPrintGroup(currentLanguage === 'ja' ? '厨房' : '厨房', kitchenEmployees);
     
     printContent += `</tbody></table>
             <div style="text-align: center; margin-top: 20px; color: #999; font-size: 9px;">
@@ -2527,30 +2636,21 @@ function showStats() {
     const container = document.getElementById('statsGrid');
     if (!container) return;
     
-    // Tính toán thời gian làm việc cả tuần
-    const today = new Date();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    
-    const startStr = startOfWeek.toISOString().split('T')[0];
-    const endStr = endOfWeek.toISOString().split('T')[0];
-    
-    // Tính tổng thời gian làm việc của tất cả nhân viên trong tuần
+    // Tổng thời gian làm việc trong tuần của tất cả nhân viên (đã làm tròn từng người trước khi cộng)
     let totalWeekHours = 0;
     employees.forEach(employee => {
         totalWeekHours += calculateWeeklyHours(employee.id);
     });
+    totalWeekHours = roundHours(totalWeekHours, 1);
     
     const totalEmployees = employees.length;
     const totalSchedules = Object.keys(schedules).length;
     const todayStr = new Date().toISOString().split('T')[0];
     const todayShifts = Object.values(schedules).filter(s => s && s.date === todayStr && !s.isDayOff).length;
-    const monthHours = employees.reduce((sum, emp) => sum + calculateMonthlyHours(emp.id), 0);
+    const monthHours = roundHours(employees.reduce((sum, emp) => sum + calculateMonthlyHours(emp.id), 0), 1);
     const frontDeskCount = employees.filter(e => e.position === '前台/服务区').length;
     const kitchenCount = employees.filter(e => e.position === '厨房区').length;
-    const avgWeekHours = Math.round((totalWeekHours / (employees.length || 1)) * 10) / 10;
+    const avgWeekHours = roundHours(totalWeekHours / (employees.length || 1), 1);
     
     container.innerHTML = `
         <div class="stat-card">
