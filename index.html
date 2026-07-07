@@ -15,13 +15,56 @@
     <!-- Apple Touch Icon -->
     <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
+    <style>
+        /* Loading screen */
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Hide dark mode for iPhone */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            }
+            
+            .app {
+                background: white !important;
+                color: #333 !important;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Loading Screen -->
     <div id="loadingScreen">
         <div class="loading-spinner"></div>
         <h2>アプリケーションを読み込み中...</h2>
-        <p style="margin-top:10px;opacity:0.8;">鍛治町酒場 神田店 勤務表</p>
+        <p style="margin-top: 10px; opacity: 0.8;">鍛治町酒場 神田店 勤務表</p>
     </div>
 
     <!-- Main App -->
@@ -45,12 +88,6 @@
             </div>
             <div class="current-date" id="currentDate"></div>
         </header>
-
-        <!-- Print Header (only for printing) -->
-        <div class="print-header">
-            <div class="company-name">鍛治町酒場 神田店</div>
-            <div class="print-date" id="printDate"></div>
-        </div>
 
         <!-- Main Navigation -->
         <nav class="main-nav no-print">
@@ -162,11 +199,11 @@
                                 <input type="time" id="scheduleEnd" class="input-field" value="00:00">
                             </div>
                             <div class="quick-time-buttons">
-                                <button type="button" class="time-preset" onclick="setTimePreset('12:00','00:00')">
+                                <button type="button" class="time-preset" onclick="setTimePreset('12:00', '00:00')">
                                     <span data-lang="ja">全日</span>
                                     <span data-lang="zh" style="display:none">全天</span>
                                 </button>
-                                <button type="button" class="time-preset" onclick="setTimePreset('18:00','00:00')">
+                                <button type="button" class="time-preset" onclick="setTimePreset('18:00', '00:00')">
                                     <span data-lang="ja">夜勤</span>
                                     <span data-lang="zh" style="display:none">晚班</span>
                                 </button>
@@ -176,7 +213,7 @@
 
                     <div class="form-group">
                         <label><i class="fas fa-tag"></i> <span data-lang="ja">種類</span><span data-lang="zh" style="display:none">类型</span></label>
-                        <div class="type-selector">
+                        <div class="type-selector" id="scheduleTypeSelector">
                             <button type="button" class="type-btn active" data-type="work" onclick="selectScheduleType('work')">
                                 <i class="fas fa-briefcase"></i>
                                 <span data-lang="ja">勤務</span>
@@ -192,17 +229,17 @@
 
                     <div class="action-buttons">
                         <button type="button" class="btn-primary" onclick="addSchedule()">
-                            <i class="fas fa-check"></i>
+                            <i class="fas fa-check"></i> 
                             <span data-lang="ja">登録</span>
                             <span data-lang="zh" style="display:none">添加</span>
                         </button>
                         <button type="button" class="btn-secondary" onclick="showQuickWeekModal()">
-                            <i class="fas fa-calendar-week"></i>
+                            <i class="fas fa-calendar-week"></i> 
                             <span data-lang="ja">週一括</span>
                             <span data-lang="zh" style="display:none">整周排班</span>
                         </button>
                         <button type="button" class="btn-secondary btn-rest-day" onclick="showSetRestDaysModal()">
-                            <i class="fas fa-umbrella-beach"></i>
+                            <i class="fas fa-umbrella-beach"></i> 
                             <span data-lang="ja">休日設定</span>
                             <span data-lang="zh" style="display:none">设置休息日</span>
                         </button>
@@ -223,15 +260,15 @@
                 <span data-lang="ja">統計</span>
                 <span data-lang="zh" style="display:none">统计</span>
             </button>
-            <button type="button" class="quick-action" onclick="printAllSchedule()">
-                <i class="fas fa-print"></i>
-                <span data-lang="ja">印刷</span>
-                <span data-lang="zh" style="display:none">打印</span>
+            <button type="button" class="quick-action" onclick="shareWeeklySchedule()">
+                <i class="fas fa-share-alt"></i>
+                <span data-lang="ja">共有</span>
+                <span data-lang="zh" style="display:none">分享</span>
             </button>
         </div>
     </div>
 
-    <!-- ===== MODALS ===== -->
+    <!-- MODALS -->
     <!-- Employee Detail Modal -->
     <div class="modal" id="employeeModal">
         <div class="modal-content">
@@ -270,26 +307,26 @@
 
                     <div class="modal-actions">
                         <button type="button" class="btn-action" onclick="editEmployeeSchedule()">
-                            <i class="fas fa-edit"></i>
+                            <i class="fas fa-edit"></i> 
                             <span data-lang="ja">編集</span>
                             <span data-lang="zh" style="display:none">编辑</span>
                         </button>
-
+                        
                         <div class="split-buttons">
                             <button type="button" class="btn-action" onclick="copyScheduleAsText()">
-                                <i class="fas fa-copy"></i>
+                                <i class="fas fa-copy"></i> 
                                 <span data-lang="ja">コピー</span>
                                 <span data-lang="zh" style="display:none">复制</span>
                             </button>
                             <button type="button" class="btn-action" onclick="printEmployeeSchedule()">
-                                <i class="fas fa-print"></i>
+                                <i class="fas fa-print"></i> 
                                 <span data-lang="ja">印刷</span>
                                 <span data-lang="zh" style="display:none">打印</span>
                             </button>
                         </div>
-
+                        
                         <button type="button" class="btn-action btn-danger" onclick="deleteCurrentEmployee()">
-                            <i class="fas fa-trash"></i>
+                            <i class="fas fa-trash"></i> 
                             <span data-lang="ja">削除</span>
                             <span data-lang="zh" style="display:none">删除</span>
                         </button>
@@ -328,7 +365,7 @@
                     </div>
                 </div>
                 <button type="button" class="btn-primary full-width" onclick="addEmployee()">
-                    <i class="fas fa-plus"></i>
+                    <i class="fas fa-plus"></i> 
                     <span data-lang="ja">追加</span>
                     <span data-lang="zh" style="display:none">添加</span>
                 </button>
@@ -353,7 +390,7 @@
                             <option value=""><span data-lang="ja">スタッフを選択</span><span data-lang="zh" style="display:none">选择员工</span></option>
                         </select>
                     </div>
-
+                    
                     <div class="form-group">
                         <label><i class="fas fa-clock"></i> <span data-lang="ja">勤務時間</span><span data-lang="zh" style="display:none">工作时间</span></label>
                         <div class="time-group">
@@ -362,21 +399,21 @@
                             <input type="time" id="quickWeekEnd" class="input-field" value="17:00">
                         </div>
                         <div class="quick-time-buttons">
-                            <button type="button" class="time-preset" onclick="setQuickTimePreset('08:00','17:00')">
+                            <button type="button" class="time-preset" onclick="setQuickTimePreset('08:00', '17:00')">
                                 <span data-lang="ja">朝</span>
                                 <span data-lang="zh" style="display:none">早班</span>
                             </button>
-                            <button type="button" class="time-preset" onclick="setQuickTimePreset('12:00','21:00')">
+                            <button type="button" class="time-preset" onclick="setQuickTimePreset('12:00', '21:00')">
                                 <span data-lang="ja">昼</span>
                                 <span data-lang="zh" style="display:none">中班</span>
                             </button>
-                            <button type="button" class="time-preset" onclick="setQuickTimePreset('09:00','18:00')">
+                            <button type="button" class="time-preset" onclick="setQuickTimePreset('09:00', '18:00')">
                                 <span data-lang="ja">全日</span>
                                 <span data-lang="zh" style="display:none">全天</span>
                             </button>
                         </div>
                     </div>
-
+                    
                     <div class="form-group">
                         <label><i class="fas fa-calendar-check"></i> <span data-lang="ja">勤務日選択</span><span data-lang="zh" style="display:none">选择工作日</span></label>
                         <div class="weekdays-selector" id="weekdaysSelector">
@@ -394,10 +431,10 @@
                         </div>
                     </div>
                 </div>
-
+                
                 <div class="modal-actions">
                     <button type="button" class="btn-primary" onclick="applyQuickWeekSchedule()">
-                        <i class="fas fa-check"></i>
+                        <i class="fas fa-check"></i> 
                         <span data-lang="ja">適用</span>
                         <span data-lang="zh" style="display:none">应用</span>
                     </button>
@@ -423,7 +460,7 @@
                             <option value=""><span data-lang="ja">スタッフを選択</span><span data-lang="zh" style="display:none">选择员工</span></option>
                         </select>
                     </div>
-
+                    
                     <div class="form-group">
                         <label><i class="fas fa-calendar-check"></i> <span data-lang="ja">休日選択</span><span data-lang="zh" style="display:none">选择休息日</span></label>
                         <div class="weekdays-selector" id="restDaysSelector">
@@ -437,10 +474,10 @@
                         </div>
                     </div>
                 </div>
-
+                
                 <div class="modal-actions">
                     <button type="button" class="btn-primary" onclick="applyRestDays()">
-                        <i class="fas fa-umbrella-beach"></i>
+                        <i class="fas fa-umbrella-beach"></i> 
                         <span data-lang="ja">適用</span>
                         <span data-lang="zh" style="display:none">应用</span>
                     </button>
@@ -499,6 +536,50 @@
             </div>
         </div>
     </div>
+
+    <!-- In-page print output (dùng cho tính năng in, thay cho popup window để tránh lỗi trên mobile) -->
+    <div id="printOutput" class="print-output"></div>
+
+    <!-- Firebase Configuration -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyB6C3s4EAPEx0GBLnBXAz4aYJfoCBEyofc",
+            authDomain: "employee-schedule-893f5.firebaseapp.com",
+            databaseURL: "https://employee-schedule-893f5-default-rtdb.firebaseio.com",
+            projectId: "employee-schedule-893f5",
+            storageBucket: "employee-schedule-893f5.firebasestorage.app",
+            messagingSenderId: "377051530021",
+            appId: "1:377051530021:web:e3341a1a7bcdc89ad810cc"
+        };
+        
+        try {
+            firebase.initializeApp(firebaseConfig);
+            window.database = firebase.database();
+            
+            // 接続状態チェック
+            window.database.ref('.info/connected').on('value', (snap) => {
+                const status = document.getElementById('connectionStatus');
+                if (snap.val() === true) {
+                    status.innerHTML = '<i class="fas fa-wifi"></i><span data-lang="ja">接続済み</span><span data-lang="zh" style="display:none">已连接</span>';
+                    status.className = 'connection-status connected';
+                } else {
+                    status.innerHTML = '<i class="fas fa-wifi-slash"></i><span data-lang="ja">接続切れ</span><span data-lang="zh" style="display:none">未连接</span>';
+                    status.className = 'connection-status disconnected';
+                }
+            });
+            
+            console.log("✅ Firebase initialized");
+        } catch (error) {
+            console.error("❌ Firebase initialization error:", error);
+        }
+        
+        // ページ読み込み完了時
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.getElementById('loadingScreen').style.display = 'none';
+            }, 500);
+        });
+    </script>
 
     <!-- Main JavaScript -->
     <script src="app.js"></script>
