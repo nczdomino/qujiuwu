@@ -412,7 +412,7 @@ function loadEmployees() {
         renderWeeklySchedule();
     }, (error) => {
         console.error("Error loading employees:", error);
-        showMessage("Error loading employees", "error");
+        showMessage(`${currentLanguage === 'ja' ? 'スタッフデータの読み込みエラー' : '加载员工数据错误'}: ${error.code || error.message || error}`, "error");
     });
 }
 
@@ -768,7 +768,7 @@ function addEmployee() {
         if (nameInput) nameInput.value = '';
     })
     .catch(error => {
-        showMessage(currentLanguage === 'ja' ? '追加失敗: ' : '添加失败: ' + error.message, 'error');
+        showMessage((currentLanguage === 'ja' ? '追加失敗: ' : '添加失败: ') + error.message, 'error');
     });
 }
 
@@ -810,7 +810,7 @@ function deleteCurrentEmployee() {
         selectedEmployee = null;
     })
     .catch(error => {
-        showMessage(currentLanguage === 'ja' ? '削除失敗: ' : '删除失败: ' + error.message, 'error');
+        showMessage((currentLanguage === 'ja' ? '削除失敗: ' : '删除失败: ') + error.message, 'error');
     });
 }
 
@@ -886,7 +886,7 @@ function loadSchedules() {
         renderEmployeeCards();
     }, (error) => {
         console.error("Error loading schedules:", error);
-        showMessage("Error loading schedules", "error");
+        showMessage(`${currentLanguage === 'ja' ? 'スケジュールデータの読み込みエラー' : '加载排班数据错误'}: ${error.code || error.message || error}`, "error");
     });
 }
 
@@ -999,7 +999,7 @@ function addSchedule() {
             renderWeeklySchedule();
         })
         .catch(error => {
-            showMessage(currentLanguage === 'ja' ? '更新失敗: ' : '更新失败: ' + error.message, 'error');
+            showMessage((currentLanguage === 'ja' ? '更新失敗: ' : '更新失败: ') + error.message, 'error');
         });
     } else {
         scheduleData.createdAt = Date.now();
@@ -1011,7 +1011,7 @@ function addSchedule() {
             renderWeeklySchedule();
         })
         .catch(error => {
-            showMessage(currentLanguage === 'ja' ? '追加失敗: ' : '添加失败: ' + error.message, 'error');
+            showMessage((currentLanguage === 'ja' ? '追加失敗: ' : '添加失败: ') + error.message, 'error');
         });
     }
 }
@@ -1287,7 +1287,7 @@ function applyQuickWeekSchedule() {
         renderWeeklySchedule();
     })
     .catch(error => {
-        showMessage(currentLanguage === 'ja' ? '設定失敗: ' : '设置失败: ' + error.message, 'error');
+        showMessage((currentLanguage === 'ja' ? '設定失敗: ' : '设置失败: ') + error.message, 'error');
     });
 }
 
@@ -1420,7 +1420,7 @@ function applyRestDays() {
         renderWeeklySchedule();
     })
     .catch(error => {
-        showMessage(currentLanguage === 'ja' ? '設定失敗: ' : '设置失败: ' + error.message, 'error');
+        showMessage((currentLanguage === 'ja' ? '設定失敗: ' : '设置失败: ') + error.message, 'error');
     });
 }
 
@@ -1760,7 +1760,7 @@ function saveDaySchedule(employeeId, date) {
             renderWeeklySchedule();
         })
         .catch(error => {
-            showMessage(currentLanguage === 'ja' ? '更新失敗: ' : '更新失败: ' + error.message, 'error');
+            showMessage((currentLanguage === 'ja' ? '更新失敗: ' : '更新失败: ') + error.message, 'error');
         });
     } else {
         scheduleData.createdAt = Date.now();
@@ -1772,7 +1772,7 @@ function saveDaySchedule(employeeId, date) {
             renderWeeklySchedule();
         })
         .catch(error => {
-            showMessage(currentLanguage === 'ja' ? '追加失敗: ' : '添加失败: ' + error.message, 'error');
+            showMessage((currentLanguage === 'ja' ? '追加失敗: ' : '添加失败: ') + error.message, 'error');
         });
     }
 }
@@ -1799,7 +1799,7 @@ function deleteDaySchedule(employeeId, date) {
         renderWeeklySchedule();
     })
     .catch(error => {
-        showMessage(currentLanguage === 'ja' ? '削除失敗: ' : '删除失败: ' + error.message, 'error');
+        showMessage((currentLanguage === 'ja' ? '削除失敗: ' : '删除失败: ') + error.message, 'error');
     });
 }
 
