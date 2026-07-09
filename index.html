@@ -7,8 +7,9 @@
     <meta name="mobile-web-app-capable" content="yes">
     <title>鍛治町酒場 神田店 - 勤務表管理</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Firebase -->
-    <script src="firebase-stub.js"></script>
+    <!-- Firebase (tự host cục bộ, không phụ thuộc CDN ngoài) -->
+    <script src="firebase-app-compat.js"></script>
+    <script src="firebase-database-compat.js"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Apple Touch Icon -->
@@ -551,7 +552,29 @@
             appId: "1:377051530021:web:e3341a1a7bcdc89ad810cc"
         };
         
+        // Hiện banner lỗi rõ ràng trên màn hình (không chỉ log console) khi SDK Firebase
+        // không tải được — ví dụ do đang xem qua công cụ preview/sandbox chặn kết nối
+        // ra ngoài tới gstatic.com, hoặc do mất mạng.
+        function showFirebaseLoadError(message) {
+            const banner = document.createElement('div');
+            banner.id = 'firebaseErrorBanner';
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;padding:12px 16px;font-size:13px;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+            banner.textContent = message;
+            document.body.appendChild(banner);
+            
+            const status = document.getElementById('connectionStatus');
+            if (status) {
+                status.innerHTML = '<i class="fas fa-triangle-exclamation"></i><span>DB エラー</span>';
+                status.className = 'connection-status disconnected';
+            }
+        }
+        
         try {
+            if (typeof firebase === 'undefined') {
+                // window.gstatic.com の Firebase SDK が読み込めなかった場合
+                throw new Error('SDK_NOT_LOADED');
+            }
+            
             firebase.initializeApp(firebaseConfig);
             window.database = firebase.database();
             
@@ -565,11 +588,20 @@
                     status.innerHTML = '<i class="fas fa-wifi-slash"></i><span data-lang="ja">接続切れ</span><span data-lang="zh" style="display:none">未连接</span>';
                     status.className = 'connection-status disconnected';
                 }
+            }, (error) => {
+                console.error("❌ Firebase connection check error:", error);
+                showFirebaseLoadError('⚠️ Firebase: ' + (error.code || error.message || error));
             });
             
             console.log("✅ Firebase initialized");
         } catch (error) {
             console.error("❌ Firebase initialization error:", error);
+            
+            if (error.message === 'SDK_NOT_LOADED') {
+                showFirebaseLoadError('⚠️ Firebase SDK が読み込めませんでした。ネットワーク接続を確認するか、実際のブラウザ／サーバーで開いてください（プレビュー環境では外部接続がブロックされることがあります）。 / Không tải được Firebase SDK — kiểm tra mạng hoặc mở bằng trình duyệt/hosting thật (một số công cụ xem trước có thể chặn kết nối ra ngoài).');
+            } else {
+                showFirebaseLoadError('⚠️ Firebase init error: ' + (error.message || error));
+            }
         }
         
         // ページ読み込み完了時
