@@ -684,6 +684,13 @@ body {
 .week-header-cell:first-child {
     text-align: left;
     padding-left: 20px;
+    /* Ghim cứng giống hệt .week-cell:first-child bên dưới, để khi kéo ngang
+       cột "Nhân viên" ở tiêu đề luôn thẳng hàng và cùng tốc độ với cột tên
+       ở từng hàng dữ liệu - tránh lệch cột và hở màu nền lúc cuộn ngang */
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: rgba(219, 234, 254, 0.95);
 }
 
 .week-header-cell:last-child {
