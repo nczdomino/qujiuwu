@@ -1537,8 +1537,10 @@ function renderWeeklySchedule() {
         const title = currentLanguage === 'ja' ? 'フロント / サービス' : '前台 / 服务';
         html += `
             <div class="week-position-header front-desk">
-                <i class="fas fa-door-open"></i> ${title}
-                <span class="week-position-count">${frontDeskEmployees.length}</span>
+                <div class="week-position-header-label">
+                    <i class="fas fa-door-open"></i> ${title}
+                    <span class="week-position-count">${frontDeskEmployees.length}</span>
+                </div>
             </div>
         `;
         frontDeskEmployees.forEach(employee => {
@@ -1550,8 +1552,10 @@ function renderWeeklySchedule() {
         const title = currentLanguage === 'ja' ? '厨房' : '厨房';
         html += `
             <div class="week-position-header kitchen">
-                <i class="fas fa-utensils"></i> ${title}
-                <span class="week-position-count">${kitchenEmployees.length}</span>
+                <div class="week-position-header-label">
+                    <i class="fas fa-utensils"></i> ${title}
+                    <span class="week-position-count">${kitchenEmployees.length}</span>
+                </div>
             </div>
         `;
         kitchenEmployees.forEach(employee => {

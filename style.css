@@ -700,8 +700,21 @@ body {
 /* Dải tiêu đề phân nhóm Front-desk / Kitchen trong bảng lịch tuần
    Lưu ý: KHÔNG dùng position:sticky ở đây — chiều cao của .week-header thay đổi
    tuỳ theo nội dung (số người mỗi ngày) nên một giá trị "top" cố định sẽ luôn
-   bị lệch/che khi cuộn. Để dải này cuộn tự nhiên cùng danh sách nhân viên. */
+   bị lệch/che khi cuộn. Để dải này cuộn tự nhiên cùng danh sách nhân viên.
+   
+   QUAN TRỌNG: dùng display:grid với ĐÚNG cùng grid-template-columns như
+   .week-header và .week-row (không phải display:flex như trước) - vì khi nội
+   dung ép tràn ngang, các lưới 8 cột (150px + 7×1fr) sẽ tự nới rộng hơn khung
+   nhìn để chứa đủ nội dung. Nếu dải này không dùng cùng kiểu lưới, nó sẽ chỉ
+   rộng bằng khung nhìn hiển thị, ngắn hơn hàng tiêu đề/hàng dữ liệu đã tràn ra,
+   gây hở khoảng trắng và lệch màu ở cạnh phải khi cuộn ngang. */
 .week-position-header {
+    display: grid;
+    grid-template-columns: 150px repeat(7, 1fr);
+}
+
+.week-position-header-label {
+    grid-column: 1 / -1;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -711,13 +724,13 @@ body {
     letter-spacing: 0.01em;
 }
 
-.week-position-header.front-desk {
+.week-position-header.front-desk .week-position-header-label {
     background: var(--info-light);
     color: var(--info);
     border-bottom: 1px solid rgba(139, 92, 246, 0.25);
 }
 
-.week-position-header.kitchen {
+.week-position-header.kitchen .week-position-header-label {
     background: var(--warning-light);
     color: var(--warning);
     border-bottom: 1px solid rgba(245, 158, 11, 0.25);
@@ -1649,7 +1662,7 @@ body {
         max-height: calc(100vh - 180px);
     }
     
-    .week-header, .week-row {
+    .week-header, .week-row, .week-position-header {
         grid-template-columns: 100px repeat(7, 1fr);
     }
     
@@ -1725,7 +1738,7 @@ body {
         font-size: 0.65rem;
     }
     
-    .week-header, .week-row {
+    .week-header, .week-row, .week-position-header {
         grid-template-columns: 80px repeat(7, 1fr);
     }
     
@@ -1759,7 +1772,7 @@ body {
         max-height: 70vh;
     }
     
-    .week-header, .week-row {
+    .week-header, .week-row, .week-position-header {
         grid-template-columns: 120px repeat(7, 1fr);
     }
 }
@@ -1779,7 +1792,7 @@ body {
         max-height: 75vh;
     }
     
-    .week-header, .week-row {
+    .week-header, .week-row, .week-position-header {
         grid-template-columns: 150px repeat(7, 1fr);
     }
 }
@@ -1888,7 +1901,7 @@ body {
 
 /* Improve print layout for mobile */
 @media print and (max-width: 600px) {
-    .week-header, .week-row {
+    .week-header, .week-row, .week-position-header {
         grid-template-columns: 80px repeat(7, 1fr) !important;
     }
     
