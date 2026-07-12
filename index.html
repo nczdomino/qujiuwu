@@ -423,17 +423,17 @@
                             <input type="time" id="quickWeekEnd" class="input-field" value="17:00">
                         </div>
                         <div class="quick-time-buttons">
-                            <button type="button" class="time-preset" onclick="setQuickTimePreset('08:00', '17:00')">
-                                <span data-lang="ja">朝</span>
+                            <button type="button" class="time-preset morning" onclick="setQuickTimePreset('08:00', '17:00')">
+                                <i class="fas fa-sun" style="color: #f59e0b;"></i>
+                                <span data-lang="ja">早班</span>
                                 <span data-lang="zh" style="display:none">早班</span>
+                                <span style="font-size:0.65rem; color:var(--gray-500);">08:00-17:00</span>
                             </button>
-                            <button type="button" class="time-preset" onclick="setQuickTimePreset('12:00', '21:00')">
-                                <span data-lang="ja">昼</span>
-                                <span data-lang="zh" style="display:none">中班</span>
-                            </button>
-                            <button type="button" class="time-preset" onclick="setQuickTimePreset('09:00', '18:00')">
-                                <span data-lang="ja">全日</span>
-                                <span data-lang="zh" style="display:none">全天</span>
+                            <button type="button" class="time-preset evening" onclick="setQuickTimePreset('17:00', '00:00')">
+                                <i class="fas fa-moon" style="color: #1e40af;"></i>
+                                <span data-lang="ja">晚班</span>
+                                <span data-lang="zh" style="display:none">晚班</span>
+                                <span style="font-size:0.65rem; color:var(--gray-500);">17:00-00:00</span>
                             </button>
                         </div>
                     </div>
