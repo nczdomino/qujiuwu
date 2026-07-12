@@ -149,7 +149,6 @@ body {
     flex: 1;
 }
 
-/* Header right section */
 .header-right {
     display: flex;
     align-items: center;
@@ -157,7 +156,6 @@ body {
     margin-left: auto;
 }
 
-/* Language switcher */
 .language-switcher {
     position: static;
     transform: none;
@@ -189,7 +187,6 @@ body {
     font-size: 16px;
 }
 
-/* Connection status */
 .connection-status {
     display: flex;
     align-items: center;
@@ -511,6 +508,11 @@ body {
     background: var(--warning-light);
 }
 
+.employee-position.rakka {
+    color: var(--secondary);
+    background: var(--secondary-light);
+}
+
 .employee-stats {
     display: flex;
     gap: 16px;
@@ -551,9 +553,6 @@ body {
     cursor: pointer;
 }
 
-/* Hàng nút sửa nhanh (Đăng ký ca / Copy) — tách hẳn thành 1 hàng riêng, full-width,
-   cao tối thiểu 44px theo chuẩn cỡ chạm của Apple (Human Interface Guidelines)
-   để bấm chính xác trên iPhone, không còn là 2 nút tròn nhỏ chen chúc như trước */
 .employee-card-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -589,14 +588,25 @@ body {
     border-color: var(--primary);
 }
 
+.card-action-btn.position-edit {
+    grid-column: 1 / -1;
+    border-color: var(--info-light);
+    color: var(--info);
+    background: var(--info-light);
+}
+
+.card-action-btn.position-edit:hover {
+    background: var(--info);
+    color: white;
+    border-color: var(--info);
+}
+
 @media (max-width: 480px) {
     .card-action-btn span {
-        display: none; /* Màn hình rất nhỏ: chỉ giữ icon để không bị chật, nhưng vùng chạm vẫn đủ 44px */
+        display: none;
     }
 }
 
-/* Mini 7-day pattern strip shown right inside the employee card,
-   so you can see the whole week (work/rest) at a glance without opening the modal */
 .week-pattern-strip {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -684,9 +694,6 @@ body {
 .week-header-cell:first-child {
     text-align: left;
     padding-left: 20px;
-    /* Ghim cứng giống hệt .week-cell:first-child bên dưới, để khi kéo ngang
-       cột "Nhân viên" ở tiêu đề luôn thẳng hàng và cùng tốc độ với cột tên
-       ở từng hàng dữ liệu - tránh lệch cột và hở màu nền lúc cuộn ngang */
     position: sticky;
     left: 0;
     z-index: 3;
@@ -697,17 +704,63 @@ body {
     border-right: none;
 }
 
-/* Dải tiêu đề phân nhóm Front-desk / Kitchen trong bảng lịch tuần
-   Lưu ý: KHÔNG dùng position:sticky ở đây — chiều cao của .week-header thay đổi
-   tuỳ theo nội dung (số người mỗi ngày) nên một giá trị "top" cố định sẽ luôn
-   bị lệch/che khi cuộn. Để dải này cuộn tự nhiên cùng danh sách nhân viên.
-   
-   QUAN TRỌNG: dùng display:grid với ĐÚNG cùng grid-template-columns như
-   .week-header và .week-row (không phải display:flex như trước) - vì khi nội
-   dung ép tràn ngang, các lưới 8 cột (150px + 7×1fr) sẽ tự nới rộng hơn khung
-   nhìn để chứa đủ nội dung. Nếu dải này không dùng cùng kiểu lưới, nó sẽ chỉ
-   rộng bằng khung nhìn hiển thị, ngắn hơn hàng tiêu đề/hàng dữ liệu đã tràn ra,
-   gây hở khoảng trắng và lệch màu ở cạnh phải khi cuộn ngang. */
+.week-header-day {
+    font-weight: 700;
+    color: var(--dark);
+    font-size: 0.7rem;
+    line-height: 1.3;
+}
+
+.week-header-date {
+    font-size: 0.65rem;
+    color: var(--gray-500);
+    margin-top: 1px;
+    line-height: 1.3;
+}
+
+.week-header-count {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    margin-top: 5px;
+}
+
+.count-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 16px;
+    padding: 0 3px;
+    border-radius: 5px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+}
+
+.count-pill.front {
+    background: var(--info-light);
+    color: var(--info);
+}
+
+.count-pill.kitchen {
+    background: var(--warning-light);
+    color: var(--warning);
+}
+
+.count-pill.rakka {
+    background: var(--secondary-light);
+    color: var(--secondary);
+}
+
+.week-header-cell.today {
+    background: rgba(37, 99, 235, 0.12);
+    border-bottom: 2px solid var(--primary);
+}
+
 .week-position-header {
     display: grid;
     grid-template-columns: 150px repeat(7, 1fr);
@@ -734,6 +787,12 @@ body {
     background: var(--warning-light);
     color: var(--warning);
     border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.week-position-header.rakka .week-position-header-label {
+    background: var(--secondary-light);
+    color: var(--secondary);
+    border-bottom: 1px solid rgba(13, 148, 136, 0.25);
 }
 
 .week-position-count {
@@ -857,6 +916,39 @@ body {
     align-items: center;
     line-height: 1.3;
     font-weight: 700;
+}
+
+.shift-badge {
+    display: inline-block;
+    font-size: 0.55rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: var(--primary-light);
+    color: var(--primary);
+    margin-top: 2px;
+    letter-spacing: 0.02em;
+}
+
+.status-badge {
+    display: inline-block;
+    font-size: 0.5rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: var(--success-light);
+    color: var(--success);
+    margin-top: 2px;
+}
+
+.status-badge.early-leave {
+    background: var(--warning-light);
+    color: var(--warning);
+}
+
+.day-schedule-item.work .status-badge.early-leave {
+    background: var(--warning);
+    color: white;
 }
 
 .day-time {
@@ -1089,6 +1181,10 @@ body {
     border-color: var(--warning);
 }
 
+.full-width {
+    width: 100%;
+}
+
 /* ===== QUICK ACTIONS BAR ===== */
 .quick-actions-bar {
     position: sticky;
@@ -1107,9 +1203,6 @@ body {
     background: rgba(255, 255, 255, 0.95);
 }
 
-/* Trên mobile, "sticky" ở đáy dễ bị giật/trôi trên Safari iOS khi thanh địa chỉ
-   co giãn lúc cuộn. Dùng "fixed" thật để thanh này luôn đứng yên tuyệt đối,
-   đồng thời chừa khoảng trống an toàn cho vùng home-indicator của iPhone. */
 @media (max-width: 767px) {
     .quick-actions-bar {
         position: fixed;
@@ -1149,6 +1242,14 @@ body {
 
 .quick-action i {
     font-size: 1.3rem;
+}
+
+.quick-action .fa-copy {
+    color: var(--info);
+}
+
+.quick-action:hover .fa-copy {
+    color: var(--info);
 }
 
 /* ===== MODALS ===== */
@@ -1359,29 +1460,26 @@ body {
     color: white;
 }
 
-/* Split buttons in employee detail */
-.split-buttons {
+.action-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
 }
 
-.split-buttons .btn-action {
+.action-row .btn-action {
     margin: 0;
-    width: 100%;
-    font-size: 0.9rem;
-    padding: 14px 8px;
 }
 
 /* Position Select */
 .position-select {
     display: flex;
     gap: 16px;
+    flex-wrap: wrap;
 }
 
 .position-option {
     flex: 1;
+    min-width: 80px;
     padding: 24px 16px;
     border: 2px solid var(--border);
     border-radius: var(--border-radius);
@@ -1632,6 +1730,246 @@ body {
     }
 }
 
+/* ============================================================
+   HỆ THỐNG IN
+   ============================================================ */
+.print-output {
+    display: none;
+}
+
+@media print {
+    body.is-printing .app {
+        display: none !important;
+    }
+    
+    body.is-printing .print-output {
+        display: block !important;
+    }
+    
+    body.is-printing {
+        background: white !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+}
+
+.print-sheet {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Microsoft YaHei', sans-serif;
+    color: #1e293b;
+    padding: 4mm;
+}
+
+.print-sheet-header {
+    text-align: center;
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+    border-bottom: 2px solid #2563eb;
+}
+
+.print-company {
+    font-size: 20px;
+    font-weight: 800;
+    color: #2563eb;
+    margin-bottom: 4px;
+}
+
+.print-employee-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.print-sub {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+.print-summary-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.print-summary-box {
+    flex: 1 1 20%;
+    min-width: 70px;
+    text-align: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 4px;
+}
+
+.print-summary-box .num {
+    font-size: 16px;
+    font-weight: 800;
+    color: #2563eb;
+}
+
+.print-summary-box .lbl {
+    font-size: 10px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.print-day-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.print-day-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.print-day-row.work {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+}
+
+.print-day-row.rest {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+.print-day-date {
+    flex: 0 0 46px;
+    text-align: center;
+}
+
+.print-day-name {
+    font-weight: 800;
+    font-size: 13px;
+}
+
+.print-day-num {
+    font-size: 10px;
+    color: #64748b;
+}
+
+.print-day-status {
+    flex: 0 0 60px;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.print-day-row.work .print-day-status { color: #065f46; }
+.print-day-row.rest .print-day-status { color: #92400e; }
+.print-day-row.none .print-day-status { color: #94a3b8; }
+
+.print-day-time {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.print-day-hours {
+    flex: 0 0 40px;
+    font-size: 12px;
+    font-weight: 800;
+    text-align: right;
+    color: #2563eb;
+}
+
+.print-footer {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 10px;
+    color: #94a3b8;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 8px;
+}
+
+.print-group-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #1e40af;
+    background: #e6f0ff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin: 12px 0 8px;
+}
+
+.print-all-header {
+    display: flex;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #475569;
+    padding: 4px 0;
+    border-bottom: 2px solid #cbd5e1;
+    margin-bottom: 4px;
+}
+
+.print-all-row {
+    display: flex;
+    gap: 4px;
+    align-items: stretch;
+    padding: 3px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.print-all-name {
+    flex: 0 0 90px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.print-all-hours {
+    font-size: 9px;
+    color: #2563eb;
+    font-weight: 800;
+}
+
+.print-all-days {
+    flex: 1;
+    display: flex;
+    gap: 3px;
+}
+
+.print-all-cell {
+    flex: 1;
+    text-align: center;
+    font-size: 8px;
+    padding: 3px 1px;
+    border-radius: 4px;
+    background: #f8fafc;
+    min-width: 0;
+}
+
+.print-all-cell.head {
+    background: transparent;
+    font-weight: 700;
+}
+
+.print-all-cell.work {
+    background: #d1fae5;
+    color: #065f46;
+    font-weight: 700;
+}
+
+.print-all-cell.rest {
+    background: #fef3c7;
+    color: #92400e;
+    font-weight: 700;
+}
+
+@media print and (max-width: 480px) {
+    .print-summary-box { min-width: 60px; }
+    .print-day-status, .print-day-hours { font-size: 10px; }
+}
+
 /* ===== RESPONSIVE ADJUSTMENTS ===== */
 @media (max-width: 767px) {
     html {
@@ -1709,6 +2047,22 @@ body {
         font-size: 0.6rem;
         padding: 4px 1px;
     }
+    
+    .week-header-day, .week-header-date {
+        font-size: 0.62rem;
+    }
+    
+    .count-pill {
+        min-width: 16px;
+        height: 14px;
+        font-size: 0.55rem;
+        padding: 0 2px;
+    }
+    
+    .week-header-count {
+        gap: 3px;
+        margin-top: 4px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1751,9 +2105,24 @@ body {
         padding: 6px 12px;
         font-size: 12px;
     }
+    
+    .count-pill {
+        min-width: 14px;
+        height: 13px;
+        font-size: 0.5rem;
+    }
+    
+    #editPositionOptions .position-option {
+        padding: 12px 6px;
+        font-size: 0.75rem;
+        min-height: 50px;
+    }
+    
+    #editPositionOptions .position-option i {
+        font-size: 1rem;
+    }
 }
 
-/* Tablet Optimizations */
 @media (min-width: 768px) and (max-width: 1024px) {
     .app {
         max-width: 95%;
@@ -1777,7 +2146,6 @@ body {
     }
 }
 
-/* Desktop Optimizations */
 @media (min-width: 1025px) {
     .employee-cards {
         grid-template-columns: repeat(3, 1fr);
@@ -1797,7 +2165,6 @@ body {
     }
 }
 
-/* Empty States */
 .empty-state {
     text-align: center;
     padding: 40px 16px;
@@ -1824,12 +2191,10 @@ body {
     color: var(--gray-500);
 }
 
-/* Status Colors */
 .status-work { color: var(--success); }
 .status-rest { color: var(--warning); }
 .status-none { color: var(--gray-400); }
 
-/* Scrollbar Styling */
 .weekly-schedule::-webkit-scrollbar,
 .modal-content::-webkit-scrollbar,
 .main-content::-webkit-scrollbar {
@@ -1856,7 +2221,6 @@ body {
     background: var(--gray-400);
 }
 
-/* iOS Safari Specific Optimizations */
 @supports (-webkit-touch-callout: none) {
     .btn-icon, .btn-primary, .btn-secondary, .btn-action {
         cursor: default;
@@ -1870,7 +2234,6 @@ body {
         font-size: 16px;
     }
     
-    /* Fix for iOS sticky positioning */
     .header {
         position: -webkit-sticky;
     }
@@ -1880,7 +2243,6 @@ body {
     }
 }
 
-/* Enhanced styles for printing */
 .single-employee-print {
     font-size: 10px !important;
 }
@@ -1899,7 +2261,6 @@ body {
     font-size: 8px !important;
 }
 
-/* Improve print layout for mobile */
 @media print and (max-width: 600px) {
     .week-header, .week-row, .week-position-header {
         grid-template-columns: 80px repeat(7, 1fr) !important;
@@ -1914,329 +2275,4 @@ body {
         font-size: 7px !important;
         padding: 1px !important;
     }
-}
-
-/* ============================================================
-   TIÊU ĐỀ NGÀY TRONG BẢNG LỊCH TUẦN: số người Front/Bếp + hôm nay
-   ============================================================ */
-.week-header-day {
-    font-weight: 700;
-    color: var(--dark);
-    font-size: 0.7rem;
-    line-height: 1.3;
-}
-
-.week-header-date {
-    font-size: 0.65rem;
-    color: var(--gray-500);
-    margin-top: 1px;
-    line-height: 1.3;
-}
-
-/* Badge số người: min-width cố định + tabular-nums để 1 số hay 2 số đều
-   không làm lệch vị trí giữa các cột hoặc với dòng thứ/ngày phía trên */
-.week-header-count {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 4px;
-    margin-top: 5px;
-}
-
-.count-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 20px;
-    height: 16px;
-    padding: 0 3px;
-    border-radius: 5px;
-    font-size: 0.6rem;
-    font-weight: 800;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum";
-}
-
-.count-pill.front {
-    background: var(--info-light);
-    color: var(--info);
-}
-
-.count-pill.kitchen {
-    background: var(--warning-light);
-    color: var(--warning);
-}
-
-.week-header-cell.today {
-    background: rgba(37, 99, 235, 0.12);
-    border-bottom: 2px solid var(--primary);
-}
-
-@media (max-width: 767px) {
-    .week-header-day, .week-header-date {
-        font-size: 0.62rem;
-    }
-    .count-pill {
-        min-width: 16px;
-        height: 14px;
-        font-size: 0.55rem;
-        padding: 0 2px;
-    }
-    .week-header-count {
-        gap: 3px;
-        margin-top: 4px;
-    }
-}
-
-@media (max-width: 480px) {
-    .count-pill {
-        min-width: 14px;
-        height: 13px;
-        font-size: 0.5rem;
-    }
-}
-
-/* ============================================================
-   HỆ THỐNG IN (in ngay trong trang, không dùng popup window)
-   ============================================================ */
-.print-output {
-    display: none;
-}
-
-@media print {
-    body.is-printing .app {
-        display: none !important;
-    }
-    
-    body.is-printing .print-output {
-        display: block !important;
-    }
-    
-    body.is-printing {
-        background: white !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-}
-
-.print-sheet {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Microsoft YaHei', sans-serif;
-    color: #1e293b;
-    padding: 4mm;
-}
-
-.print-sheet-header {
-    text-align: center;
-    padding-bottom: 10px;
-    margin-bottom: 14px;
-    border-bottom: 2px solid #2563eb;
-}
-
-.print-company {
-    font-size: 20px;
-    font-weight: 800;
-    color: #2563eb;
-    margin-bottom: 4px;
-}
-
-.print-employee-name {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1e293b;
-}
-
-.print-sub {
-    font-size: 12px;
-    color: #64748b;
-    margin-top: 4px;
-    font-weight: 600;
-}
-
-/* Ô tổng hợp giờ làm — dùng flex-wrap để tự co giãn theo khổ giấy (điện thoại/máy tính đều gọn) */
-.print-summary-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.print-summary-box {
-    flex: 1 1 20%;
-    min-width: 70px;
-    text-align: center;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 8px 4px;
-}
-
-.print-summary-box .num {
-    font-size: 16px;
-    font-weight: 800;
-    color: #2563eb;
-}
-
-.print-summary-box .lbl {
-    font-size: 10px;
-    color: #64748b;
-    margin-top: 2px;
-}
-
-/* Danh sách các ngày dạng hàng ngang, tự xuống dòng — không bị tràn ngang dù in trên khổ giấy nào */
-.print-day-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.print-day-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    background: #f8fafc;
-}
-
-.print-day-row.work {
-    background: #ecfdf5;
-    border-color: #a7f3d0;
-}
-
-.print-day-row.rest {
-    background: #fffbeb;
-    border-color: #fde68a;
-}
-
-.print-day-date {
-    flex: 0 0 46px;
-    text-align: center;
-}
-
-.print-day-name {
-    font-weight: 800;
-    font-size: 13px;
-}
-
-.print-day-num {
-    font-size: 10px;
-    color: #64748b;
-}
-
-.print-day-status {
-    flex: 0 0 60px;
-    font-size: 11px;
-    font-weight: 700;
-    text-align: center;
-}
-
-.print-day-row.work .print-day-status { color: #065f46; }
-.print-day-row.rest .print-day-status { color: #92400e; }
-.print-day-row.none .print-day-status { color: #94a3b8; }
-
-.print-day-time {
-    flex: 1;
-    font-size: 12px;
-    font-weight: 600;
-    text-align: center;
-}
-
-.print-day-hours {
-    flex: 0 0 40px;
-    font-size: 12px;
-    font-weight: 800;
-    text-align: right;
-    color: #2563eb;
-}
-
-.print-footer {
-    margin-top: 18px;
-    text-align: center;
-    font-size: 10px;
-    color: #94a3b8;
-    border-top: 1px solid #e2e8f0;
-    padding-top: 8px;
-}
-
-/* In toàn bộ (tất cả nhân viên) — cũng dùng flex-wrap để không tràn ngang */
-.print-group-title {
-    font-size: 13px;
-    font-weight: 800;
-    color: #1e40af;
-    background: #e6f0ff;
-    padding: 6px 10px;
-    border-radius: 6px;
-    margin: 12px 0 8px;
-}
-
-.print-all-header {
-    display: flex;
-    gap: 4px;
-    font-size: 10px;
-    font-weight: 700;
-    color: #475569;
-    padding: 4px 0;
-    border-bottom: 2px solid #cbd5e1;
-    margin-bottom: 4px;
-}
-
-.print-all-row {
-    display: flex;
-    gap: 4px;
-    align-items: stretch;
-    padding: 3px 0;
-    border-bottom: 1px solid #f1f5f9;
-}
-
-.print-all-name {
-    flex: 0 0 90px;
-    font-size: 10px;
-    font-weight: 700;
-}
-
-.print-all-hours {
-    font-size: 9px;
-    color: #2563eb;
-    font-weight: 800;
-}
-
-.print-all-days {
-    flex: 1;
-    display: flex;
-    gap: 3px;
-}
-
-.print-all-cell {
-    flex: 1;
-    text-align: center;
-    font-size: 8px;
-    padding: 3px 1px;
-    border-radius: 4px;
-    background: #f8fafc;
-    min-width: 0;
-}
-
-.print-all-cell.head {
-    background: transparent;
-    font-weight: 700;
-}
-
-.print-all-cell.work {
-    background: #d1fae5;
-    color: #065f46;
-    font-weight: 700;
-}
-
-.print-all-cell.rest {
-    background: #fef3c7;
-    color: #92400e;
-    font-weight: 700;
-}
-
-/* Trên khổ giấy nhỏ hơn (ví dụ in từ điện thoại ra PDF khổ hẹp), thu gọn thêm 1 chút */
-@media print and (max-width: 480px) {
-    .print-summary-box { min-width: 60px; }
-    .print-day-status, .print-day-hours { font-size: 10px; }
 }
