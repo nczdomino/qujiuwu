@@ -142,6 +142,10 @@
                         <span data-lang="ja">厨房</span>
                         <span data-lang="zh" style="display:none">厨房</span>
                     </button>
+                    <button class="filter-btn" data-position="拉客" onclick="filterEmployees('拉客')">
+                        <span data-lang="ja">ラッカ</span>
+                        <span data-lang="zh" style="display:none">拉客</span>
+                    </button>
                 </div>
 
                 <div class="employee-cards" id="employeeCards">
@@ -265,6 +269,11 @@
                 <span data-lang="ja">共有</span>
                 <span data-lang="zh" style="display:none">分享</span>
             </button>
+            <button type="button" class="quick-action" onclick="copyAllSchedulesToNextWeek()">
+                <i class="fas fa-copy"></i>
+                <span data-lang="ja">全コピー</span>
+                <span data-lang="zh" style="display:none">全部复制</span>
+            </button>
         </div>
     </div>
 
@@ -306,27 +315,37 @@
                     </div>
 
                     <div class="modal-actions">
-                        <button type="button" class="btn-action" onclick="editEmployeeSchedule()">
-                            <i class="fas fa-edit"></i> 
-                            <span data-lang="ja">編集</span>
-                            <span data-lang="zh" style="display:none">编辑</span>
-                        </button>
-                        
-                        <div class="split-buttons">
-                            <button type="button" class="btn-action" onclick="copyScheduleAsText()">
-                                <i class="fas fa-copy"></i> 
+                        <div class="action-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+                            <button type="button" class="btn-action" onclick="editEmployeePosition(selectedEmployee)">
+                                <i class="fas fa-user-edit"></i>
+                                <span data-lang="ja">職種変更</span>
+                                <span data-lang="zh" style="display:none">更改职位</span>
+                            </button>
+                            <button type="button" class="btn-action" onclick="copyScheduleToNextWeek(selectedEmployee)">
+                                <i class="fas fa-copy"></i>
+                                <span data-lang="ja">来週コピー</span>
+                                <span data-lang="zh" style="display:none">复制到下周</span>
+                            </button>
+                        </div>
+                        <div class="action-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%;">
+                            <button type="button" class="btn-action" onclick="editEmployeeSchedule()">
+                                <i class="fas fa-edit"></i>
+                                <span data-lang="ja">編集</span>
+                                <span data-lang="zh" style="display:none">编辑</span>
+                            </button>
+                            <button type="button" class="btn-action" onclick="copyScheduleAsText(selectedEmployee)">
+                                <i class="fas fa-copy"></i>
                                 <span data-lang="ja">コピー</span>
                                 <span data-lang="zh" style="display:none">复制</span>
                             </button>
-                            <button type="button" class="btn-action" onclick="printEmployeeSchedule()">
-                                <i class="fas fa-print"></i> 
-                                <span data-lang="ja">印刷</span>
-                                <span data-lang="zh" style="display:none">打印</span>
+                            <button type="button" class="btn-action" onclick="openEarlyLeaveModal(selectedEmployee)">
+                                <i class="fas fa-clock"></i>
+                                <span data-lang="ja">早退</span>
+                                <span data-lang="zh" style="display:none">早退</span>
                             </button>
                         </div>
-                        
                         <button type="button" class="btn-action btn-danger" onclick="deleteCurrentEmployee()">
-                            <i class="fas fa-trash"></i> 
+                            <i class="fas fa-trash"></i>
                             <span data-lang="ja">削除</span>
                             <span data-lang="zh" style="display:none">删除</span>
                         </button>
@@ -361,6 +380,11 @@
                             <i class="fas fa-utensils"></i>
                             <span data-lang="ja">厨房</span>
                             <span data-lang="zh" style="display:none">厨房</span>
+                        </button>
+                        <button type="button" class="position-option" data-position="拉客" onclick="selectPosition(this)">
+                            <i class="fas fa-handshake"></i>
+                            <span data-lang="ja">ラッカ</span>
+                            <span data-lang="zh" style="display:none">拉客</span>
                         </button>
                     </div>
                 </div>
@@ -537,6 +561,93 @@
         </div>
     </div>
 
+    <!-- Edit Position Modal -->
+    <div class="modal" id="editPositionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-edit"></i> <span data-lang="ja">職種変更</span><span data-lang="zh" style="display:none">更改职位</span></h3>
+                <button type="button" class="modal-close" onclick="closeModal('editPositionModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px;">
+                    <div style="font-weight: 700; font-size: 1.1rem; color: var(--dark);" id="editPositionName"></div>
+                    <div style="color: var(--gray-500); font-size: 0.9rem; margin-top: 4px;">
+                        <span data-lang="ja">現在の職種:</span>
+                        <span data-lang="zh" style="display:none">当前职位:</span>
+                        <span id="editPositionCurrent" style="font-weight: 700; color: var(--primary);"></span>
+                    </div>
+                </div>
+                <input type="hidden" id="editPositionEmployeeId">
+                <div class="form-group">
+                    <label><i class="fas fa-briefcase"></i> <span data-lang="ja">新しい職種</span><span data-lang="zh" style="display:none">新职位</span></label>
+                    <div class="position-select" id="editPositionOptions">
+                        <button type="button" class="position-option" data-position="前台/服务区" onclick="selectEditPosition(this)">
+                            <i class="fas fa-door-open"></i>
+                            <span data-lang="ja">フロント</span>
+                            <span data-lang="zh" style="display:none">前台</span>
+                        </button>
+                        <button type="button" class="position-option" data-position="厨房区" onclick="selectEditPosition(this)">
+                            <i class="fas fa-utensils"></i>
+                            <span data-lang="ja">厨房</span>
+                            <span data-lang="zh" style="display:none">厨房</span>
+                        </button>
+                        <button type="button" class="position-option" data-position="拉客" onclick="selectEditPosition(this)">
+                            <i class="fas fa-handshake"></i>
+                            <span data-lang="ja">ラッカ</span>
+                            <span data-lang="zh" style="display:none">拉客</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button type="button" class="btn-primary" onclick="updateEmployeePosition()">
+                        <i class="fas fa-save"></i>
+                        <span data-lang="ja">更新</span>
+                        <span data-lang="zh" style="display:none">更新</span>
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="closeModal('editPositionModal')">
+                        <span data-lang="ja">キャンセル</span>
+                        <span data-lang="zh" style="display:none">取消</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Early Leave Modal -->
+    <div class="modal" id="earlyLeaveModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-clock"></i> <span data-lang="ja">早退設定</span><span data-lang="zh" style="display:none">早退设置</span></h3>
+                <button type="button" class="modal-close" onclick="closeModal('earlyLeaveModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="earlyLeaveEmployeeId">
+                <div class="form-group">
+                    <label><i class="fas fa-calendar"></i> <span data-lang="ja">日付</span><span data-lang="zh" style="display:none">日期</span></label>
+                    <input type="date" id="earlyLeaveDate" class="input-field">
+                </div>
+                <div style="padding: 12px 16px; background: var(--gray-50); border-radius: var(--border-radius-sm); margin-bottom: 20px;">
+                    <span id="earlyLeaveCurrentStatus" style="font-weight: 600;"></span>
+                </div>
+                <div class="action-buttons">
+                    <button type="button" class="btn-primary" onclick="applyEarlyLeave()">
+                        <i class="fas fa-check"></i>
+                        <span data-lang="ja">早退</span>
+                        <span data-lang="zh" style="display:none">早退</span>
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="closeModal('earlyLeaveModal')">
+                        <span data-lang="ja">キャンセル</span>
+                        <span data-lang="zh" style="display:none">取消</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- In-page print output (dùng cho tính năng in, thay cho popup window để tránh lỗi trên mobile) -->
     <div id="printOutput" class="print-output"></div>
 
@@ -552,9 +663,6 @@
             appId: "1:377051530021:web:e3341a1a7bcdc89ad810cc"
         };
         
-        // Hiện banner lỗi rõ ràng trên màn hình (không chỉ log console) khi SDK Firebase
-        // không tải được — ví dụ do đang xem qua công cụ preview/sandbox chặn kết nối
-        // ra ngoài tới gstatic.com, hoặc do mất mạng.
         function showFirebaseLoadError(message) {
             const banner = document.createElement('div');
             banner.id = 'firebaseErrorBanner';
@@ -571,14 +679,12 @@
         
         try {
             if (typeof firebase === 'undefined') {
-                // window.gstatic.com の Firebase SDK が読み込めなかった場合
                 throw new Error('SDK_NOT_LOADED');
             }
             
             firebase.initializeApp(firebaseConfig);
             window.database = firebase.database();
             
-            // 接続状態チェック
             window.database.ref('.info/connected').on('value', (snap) => {
                 const status = document.getElementById('connectionStatus');
                 if (snap.val() === true) {
@@ -604,7 +710,6 @@
             }
         }
         
-        // ページ読み込み完了時
         window.addEventListener('load', function() {
             setTimeout(function() {
                 document.getElementById('loadingScreen').style.display = 'none';
