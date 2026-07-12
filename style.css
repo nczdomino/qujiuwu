@@ -659,14 +659,34 @@ body {
     border-radius: var(--border-radius);
     border: 1px solid var(--border);
     overflow: hidden;
-    max-height: none;
     position: relative;
+    max-height: calc(100vh - 280px);
+}
+
+/* Desktop: hiển thị FULL, không cuộn */
+@media (min-width: 1024px) {
+    .weekly-schedule-container {
+        max-height: none;
+        overflow: visible;
+    }
+    
+    .weekly-schedule {
+        overflow: visible;
+        max-height: none;
+    }
 }
 
 .weekly-schedule {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    max-height: none;
+    max-height: calc(100vh - 280px);
+}
+
+@media (min-width: 1024px) {
+    .weekly-schedule {
+        overflow: visible;
+        max-height: none;
+    }
 }
 
 .week-header {
@@ -825,6 +845,79 @@ body {
     min-height: 100px;
 }
 
+/* Desktop: tăng kích thước chữ lên */
+@media (min-width: 1024px) {
+    .week-cell {
+        padding: 16px 12px;
+        min-height: 120px;
+    }
+    
+    .week-cell:first-child {
+        font-size: 1.1rem;
+        padding-left: 24px;
+        min-height: 120px;
+    }
+    
+    .day-schedule-item {
+        font-size: 1rem;
+        padding: 12px 8px;
+    }
+    
+    .compact-time span {
+        font-size: 1rem;
+    }
+    
+    .shift-badge, .status-badge {
+        font-size: 0.7rem;
+        padding: 2px 10px;
+    }
+    
+    .week-header-cell {
+        font-size: 1rem;
+        padding: 16px 12px;
+    }
+    
+    .week-header-day {
+        font-size: 0.85rem;
+    }
+    
+    .week-header-date {
+        font-size: 0.8rem;
+    }
+    
+    .week-position-header-label {
+        font-size: 1rem;
+        padding: 12px 20px;
+    }
+    
+    .week-row {
+        min-height: 130px;
+    }
+    
+    .week-row .week-cell:first-child div {
+        font-size: 1rem;
+    }
+    
+    .week-row .week-cell:first-child .week-cell-hours {
+        font-size: 0.85rem;
+    }
+    
+    .week-header-cell .week-header-day {
+        font-size: 0.9rem;
+    }
+    
+    .week-header-cell .week-header-date {
+        font-size: 0.8rem;
+    }
+    
+    .count-pill {
+        min-width: 24px;
+        height: 20px;
+        font-size: 0.75rem;
+        padding: 0 6px;
+    }
+}
+
 .week-cell:first-child {
     font-weight: 600;
     font-size: 0.95rem;
@@ -858,7 +951,7 @@ body {
     border-radius: var(--border-radius-sm);
     padding: 10px;
     font-size: 0.85rem;
-    line-height: 1.3;
+    line-height: 1.4;
     cursor: pointer;
     transition: all var(--transition);
     display: flex;
@@ -868,6 +961,34 @@ body {
     text-align: center;
     overflow: hidden;
     backdrop-filter: blur(4px);
+}
+
+/* Desktop: chữ to hơn */
+@media (min-width: 1024px) {
+    .day-schedule-item {
+        font-size: 1rem;
+        padding: 14px 10px;
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+    }
+    
+    .compact-time span {
+        font-size: 1rem;
+    }
+    
+    .shift-badge {
+        font-size: 0.7rem;
+        padding: 2px 10px;
+        margin-top: 3px;
+    }
+    
+    .status-badge {
+        font-size: 0.65rem;
+        padding: 2px 10px;
+        margin-top: 3px;
+    }
 }
 
 .day-schedule-item.work {
@@ -922,33 +1043,89 @@ body {
     display: inline-block;
     font-size: 0.55rem;
     font-weight: 700;
-    padding: 1px 6px;
-    border-radius: 8px;
-    background: var(--primary-light);
-    color: var(--primary);
+    padding: 2px 8px;
+    border-radius: 10px;
     margin-top: 2px;
     letter-spacing: 0.02em;
+    border: 1px solid transparent;
+}
+
+/* 早班 - màu xanh dương / sáng */
+.shift-badge.morning {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border-color: #93c5fd;
+}
+
+/* 晚班 - màu cam / vàng đậm */
+.shift-badge.evening {
+    background: #fef3c7;
+    color: #b45309;
+    border-color: #fcd34d;
+}
+
+/* 夜勤 đặc biệt - màu tím / xanh đậm (nếu có ca đêm) */
+.shift-badge.night {
+    background: #e0e7ff;
+    color: #4338ca;
+    border-color: #a5b4fc;
 }
 
 .status-badge {
     display: inline-block;
     font-size: 0.5rem;
     font-weight: 700;
-    padding: 1px 6px;
-    border-radius: 8px;
-    background: var(--success-light);
-    color: var(--success);
+    padding: 2px 8px;
+    border-radius: 10px;
     margin-top: 2px;
+    border: 1px solid transparent;
 }
 
+/* 出勤 - màu xanh lá */
+.status-badge.present {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #6ee7b7;
+}
+
+/* 早退 - màu đỏ cam */
 .status-badge.early-leave {
-    background: var(--warning-light);
-    color: var(--warning);
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #fca5a5;
+}
+
+/* 休暇 - màu xám */
+.status-badge.holiday {
+    background: #f1f5f9;
+    color: #475569;
+    border-color: #cbd5e1;
+}
+
+/* 欠勤 - màu đỏ đậm */
+.status-badge.absent {
+    background: #fecaca;
+    color: #991b1b;
+    border-color: #f87171;
+}
+
+/* Khi ở trong ô ca làm (work) */
+.day-schedule-item.work .status-badge.present {
+    background: #059669;
+    color: white;
+    border-color: #059669;
 }
 
 .day-schedule-item.work .status-badge.early-leave {
-    background: var(--warning);
+    background: #dc2626;
     color: white;
+    border-color: #dc2626;
+}
+
+.day-schedule-item.work .status-badge.holiday {
+    background: #6b7280;
+    color: white;
+    border-color: #6b7280;
 }
 
 .day-time {
@@ -1050,23 +1227,32 @@ body {
 
 .quick-time-buttons {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     flex-wrap: wrap;
+    margin-top: 8px;
 }
 
 .time-preset {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
     padding: 10px 16px;
-    border: 1px solid var(--border);
-    border-radius: 20px;
+    border: 2px solid var(--border);
+    border-radius: var(--border-radius-sm);
     background: var(--gray-50);
-    color: var(--gray-600);
-    font-size: 0.9rem;
-    font-weight: 500;
+    color: var(--gray-700);
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all var(--transition);
     flex: 1;
-    min-width: 90px;
+    min-width: 100px;
     text-align: center;
+}
+
+.time-preset i {
+    font-size: 1.1rem;
 }
 
 .time-preset:hover {
@@ -1074,6 +1260,50 @@ body {
     color: var(--primary);
     background: var(--primary-light);
     transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.time-preset:active {
+    transform: scale(0.97);
+}
+
+/* Nút 早班 - màu vàng cam */
+.time-preset.morning {
+    border-color: #fcd34d;
+    background: #fffbeb;
+}
+
+.time-preset.morning:hover {
+    background: #fef3c7;
+    border-color: #f59e0b;
+}
+
+/* Nút 晚班 - màu xanh đêm */
+.time-preset.evening {
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+
+.time-preset.evening:hover {
+    background: #dbeafe;
+    border-color: #3b82f6;
+}
+
+/* Responsive cho mobile */
+@media (max-width: 480px) {
+    .time-preset {
+        font-size: 0.75rem;
+        padding: 8px 12px;
+        min-width: 80px;
+    }
+    
+    .time-preset span:last-child {
+        font-size: 0.55rem !important;
+    }
+    
+    .quick-time-buttons {
+        gap: 8px;
+    }
 }
 
 .type-selector {
@@ -1968,6 +2198,88 @@ body {
 @media print and (max-width: 480px) {
     .print-summary-box { min-width: 60px; }
     .print-day-status, .print-day-hours { font-size: 10px; }
+}
+
+/* ===== DRAG & DROP ===== */
+.employee-card[draggable="true"] {
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.employee-card[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.position-group.drag-over {
+    border: 3px dashed var(--primary);
+    background: var(--primary-light);
+    border-radius: var(--border-radius);
+    padding: 12px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.position-group.drag-over::after {
+    content: '⬇️ ' attr(data-drop-label);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary);
+    background: rgba(255,255,255,0.9);
+    padding: 12px 24px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.position-group.drag-over .employee-card {
+    opacity: 0.7;
+    transform: scale(0.98);
+}
+
+.position-group.drag-over .employee-card:hover {
+    opacity: 1;
+    transform: scale(1);
+}
+
+#dragHint {
+    animation: slideUpHint 0.3s ease forwards;
+}
+
+@keyframes slideUpHint {
+    from {
+        transform: translateX(-50%) translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 767px) {
+    .employee-card[draggable="true"] {
+        cursor: default;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+    }
+    
+    .position-group.drag-over {
+        border: 2px dashed var(--primary);
+        background: var(--primary-light);
+        padding: 8px;
+    }
+    
+    .position-group.drag-over::after {
+        font-size: 0.9rem;
+        padding: 8px 16px;
+    }
 }
 
 /* ===== RESPONSIVE ADJUSTMENTS ===== */
