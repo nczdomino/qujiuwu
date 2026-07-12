@@ -11,20 +11,14 @@ let currentLanguage = 'ja';
 document.addEventListener('DOMContentLoaded', function() {
     console.log("🚀 鍛治町酒場 神田店 勤務表システム起動");
     
-    // Load language
     const savedLanguage = localStorage.getItem('appLanguage');
     if (savedLanguage) {
         currentLanguage = savedLanguage;
     }
     
-    // Initialize the app
     initApp();
-    
-    // Load data
     loadEmployees();
     loadSchedules();
-    
-    // Set up event listeners
     setupEventListeners();
     
     console.log("✅ アプリ初期化完了");
@@ -34,29 +28,20 @@ function initApp() {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     
-    // Set form date
     const scheduleDateInput = document.getElementById('scheduleDate');
     if (scheduleDateInput) {
         scheduleDateInput.value = todayStr;
         scheduleDateInput.min = todayStr;
     }
     
-    // Initialize weekday selector
     initWeekdaysSelector();
-    
-    // Update current date display
     updateCurrentDate();
-    
-    // Update language
     updateLanguage();
-    
-    // Set auto-refresh for date
     setInterval(updateCurrentDate, 60000);
 }
 
 // ==================== LANGUAGE FUNCTIONS ====================
 function updateLanguage() {
-    // Update all language elements
     document.querySelectorAll('[data-lang]').forEach(element => {
         const jaElement = element.querySelector('[data-lang="ja"]');
         const zhElement = element.querySelector('[data-lang="zh"]');
@@ -75,7 +60,6 @@ function updateLanguage() {
         }
     });
     
-    // Update language button
     const languageBtn = document.getElementById('languageSwitch');
     const currentLangSpan = document.getElementById('currentLanguage');
     if (currentLanguage === 'ja') {
@@ -86,19 +70,14 @@ function updateLanguage() {
         languageBtn.title = 'Switch to Japanese';
     }
     
-    // Update date display
     updateCurrentDate();
     
-    // Update search placeholder
     const searchInput = document.getElementById('employeeSearch');
     if (searchInput) {
         searchInput.placeholder = currentLanguage === 'ja' ? 'スタッフを検索...' : '搜索员工...';
     }
     
-    // Update print date
     updatePrintDate();
-    
-    // Update data display
     renderEmployeeCards();
     renderWeeklySchedule();
 }
@@ -151,7 +130,6 @@ function openModal(modalId) {
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     
-    // Focus on first input if available
     setTimeout(() => {
         const firstInput = modal.querySelector('input:not([type="hidden"]), select, button:not(.modal-close)');
         if (firstInput && firstInput.type !== 'hidden') {
@@ -217,7 +195,6 @@ function showMessage(message, type = 'info') {
         translatedMessage = messageMap[message] || message;
     }
     
-    // Create toast message
     const toast = document.createElement('div');
     toast.className = `toast-message toast-${type}`;
     
@@ -238,12 +215,10 @@ function showMessage(message, type = 'info') {
     
     document.body.appendChild(toast);
     
-    // Show animation
     setTimeout(() => {
         toast.classList.add('show');
     }, 10);
     
-    // Auto remove after 3 seconds
     setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => {
@@ -305,9 +280,6 @@ function validateTimeRange(startTime, endTime) {
     return true;
 }
 
-// ==================== HOURS ROUNDING HELPER ====================
-// Dùng chung cho MỌI nơi hiển thị số giờ, để tránh lỗi cộng dồn số thực
-// (floating point) gây ra các số lẻ dài kiểu 146.22222222h
 function roundHours(value, decimals = 1) {
     if (typeof value !== 'number' || !isFinite(value)) return 0;
     const factor = Math.pow(10, decimals);
@@ -346,27 +318,22 @@ function calculateShiftHours(startTime, endTime) {
 
 // ==================== VIEW MANAGEMENT ====================
 function switchView(viewName) {
-    // Hide all views
     document.querySelectorAll('.view').forEach(view => {
         view.classList.remove('active');
     });
     
-    // Update nav button states
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     
-    // Show selected view
     const viewElement = document.getElementById(viewName + 'View');
     if (viewElement) {
         viewElement.classList.add('active');
     }
     
-    // Activate corresponding nav button
     const navBtn = document.querySelector(`.nav-btn[data-view="${viewName}"]`);
     if (navBtn) navBtn.classList.add('active');
     
-    // View-specific initialization
     switch(viewName) {
         case 'weekly':
             renderWeeklySchedule();
@@ -379,7 +346,6 @@ function switchView(viewName) {
             break;
     }
     
-    // Save view to localStorage
     localStorage.setItem('lastView', viewName);
 }
 
@@ -452,6 +418,7 @@ function renderEmployeeCards() {
     
     const frontDeskEmployees = filteredEmployees.filter(emp => emp.position === '前台/服务区');
     const kitchenEmployees = filteredEmployees.filter(emp => emp.position === '厨房区');
+    const rakkaEmployees = filteredEmployees.filter(emp => emp.position === '拉客');
     
     let html = '';
     
@@ -485,20 +452,34 @@ function renderEmployeeCards() {
         `;
     }
     
+    if (rakkaEmployees.length > 0) {
+        const title = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+        html += `
+            <div class="position-group">
+                <h3 class="position-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--secondary);">
+                    <i class="fas fa-handshake"></i> ${title}
+                    <span class="position-count" style="font-size: 12px; background: var(--secondary-light); color: var(--secondary); padding: 2px 8px; border-radius: 12px;">${rakkaEmployees.length}</span>
+                </h3>
+                <div class="position-cards">
+                    ${rakkaEmployees.map(emp => generateEmployeeCard(emp)).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
     container.innerHTML = html;
 }
 
-// Trả về mảng 7 phần tử mô tả trạng thái từng ngày trong tuần của 1 nhân viên
-// status: 'work' | 'rest' | 'none'
-// Đếm số người đang làm việc (không tính nghỉ) ở Front-desk và Bếp trong 1 ngày cụ thể
 function getDayHeadcount(dateString) {
-    const result = { front: 0, kitchen: 0 };
+    const result = { front: 0, kitchen: 0, rakka: 0 };
     if (!schedules || typeof schedules !== 'object') return result;
     
     Object.values(schedules).forEach(s => {
         if (s && s.date === dateString && !s.isDayOff) {
             if (s.employeePosition === '厨房区') {
                 result.kitchen++;
+            } else if (s.employeePosition === '拉客') {
+                result.rakka++;
             } else {
                 result.front++;
             }
@@ -549,9 +530,18 @@ function generateEmployeeCard(employee) {
     const monthlyHours = calculateMonthlyHours(employee.id);
     const weekSchedule = getThisWeekSchedule(employee.id);
     
-    const positionDisplay = currentLanguage === 'ja' 
-        ? (employee.position === '厨房区' ? '厨房' : 'フロント')
-        : (employee.position === '厨房区' ? '厨房' : '前台');
+    let positionDisplay = '';
+    let positionClass = '';
+    if (employee.position === '厨房区') {
+        positionDisplay = currentLanguage === 'ja' ? '厨房' : '厨房';
+        positionClass = 'kitchen';
+    } else if (employee.position === '拉客') {
+        positionDisplay = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+        positionClass = 'rakka';
+    } else {
+        positionDisplay = currentLanguage === 'ja' ? 'フロント' : '前台';
+        positionClass = 'front-desk';
+    }
     
     return `
         <div class="employee-card">
@@ -561,8 +551,8 @@ function generateEmployeeCard(employee) {
                 </div>
                 <div class="employee-info">
                     <div class="employee-name">${employee.name}</div>
-                    <div class="employee-position ${employee.position === '厨房区' ? 'kitchen' : 'front-desk'}">
-                        <i class="fas ${employee.position === '厨房区' ? 'fa-utensils' : 'fa-door-open'}"></i>
+                    <div class="employee-position ${positionClass}">
+                        <i class="fas ${employee.position === '厨房区' ? 'fa-utensils' : employee.position === '拉客' ? 'fa-handshake' : 'fa-door-open'}"></i>
                         ${positionDisplay}
                     </div>
                     <div class="employee-stats">
@@ -602,6 +592,10 @@ function generateEmployeeCard(employee) {
                     <i class="fas fa-copy"></i>
                     <span>${currentLanguage === 'ja' ? 'コピー' : '复制'}</span>
                 </button>
+                <button type="button" class="card-action-btn position-edit" onclick="editEmployeePosition('${employee.id}')">
+                    <i class="fas fa-user-edit"></i>
+                    <span>${currentLanguage === 'ja' ? '職種変更' : '更改职位'}</span>
+                </button>
             </div>
         </div>
     `;
@@ -639,9 +633,15 @@ function showEmployeeDetail(employeeId) {
     
     if (modalEmployeeName) modalEmployeeName.textContent = employee.name;
     if (modalEmployeePosition) {
-        modalEmployeePosition.textContent = currentLanguage === 'ja' 
-            ? (employee.position === '厨房区' ? '厨房' : 'フロント')
-            : (employee.position === '厨房区' ? '厨房' : '前台');
+        let posDisplay = '';
+        if (employee.position === '厨房区') {
+            posDisplay = currentLanguage === 'ja' ? '厨房' : '厨房';
+        } else if (employee.position === '拉客') {
+            posDisplay = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+        } else {
+            posDisplay = currentLanguage === 'ja' ? 'フロント' : '前台';
+        }
+        modalEmployeePosition.textContent = posDisplay;
     }
     
     const weeklyHours = calculateWeeklyHours(employeeId);
@@ -683,6 +683,8 @@ function showEmployeeWeekSchedule(employeeId) {
             ` : `
                 <div style="font-size: 11px; margin-top: 4px; font-weight: 600; color: var(--success);">
                     ${schedule.startTime.substring(0, 5)}-${schedule.endTime.substring(0, 5)}
+                    ${getShiftTypeLabel(schedule.startTime) ? ` (${getShiftTypeLabel(schedule.startTime)})` : ''}
+                    ${getStatusLabel(schedule.status || 'present')}
                 </div>
             `;
         }
@@ -697,8 +699,6 @@ function showEmployeeWeekSchedule(employeeId) {
     }).join('');
 }
 
-// Sửa nhanh: nhảy thẳng sang tab "Đăng ký ca" (シフト登録) với nhân viên đã chọn sẵn,
-// không cần mở modal chi tiết rồi mới bấm "編集"
 function quickAddScheduleFor(employeeId) {
     switchView('schedule');
     setTimeout(() => {
@@ -827,12 +827,17 @@ function updateScheduleEmployeeSelect() {
     select.innerHTML = `<option value="">${currentLanguage === 'ja' ? 'スタッフを選択' : '选择员工'}</option>`;
     
     employees.sort((a, b) => a.name.localeCompare(b.name)).forEach(emp => {
-        const position = currentLanguage === 'ja' 
-            ? (emp.position === '厨房区' ? '厨房' : 'フロント')
-            : (emp.position === '厨房区' ? '厨房' : '前台');
+        let posDisplay = '';
+        if (emp.position === '厨房区') {
+            posDisplay = currentLanguage === 'ja' ? '厨房' : '厨房';
+        } else if (emp.position === '拉客') {
+            posDisplay = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+        } else {
+            posDisplay = currentLanguage === 'ja' ? 'フロント' : '前台';
+        }
         const option = document.createElement('option');
         option.value = emp.id;
-        option.textContent = `${emp.name} (${position})`;
+        option.textContent = `${emp.name} (${posDisplay})`;
         select.appendChild(option);
     });
 }
@@ -844,12 +849,17 @@ function updateQuickWeekEmployeeSelect() {
     select.innerHTML = `<option value="">${currentLanguage === 'ja' ? 'スタッフを選択' : '选择员工'}</option>`;
     
     employees.sort((a, b) => a.name.localeCompare(b.name)).forEach(emp => {
-        const position = currentLanguage === 'ja' 
-            ? (emp.position === '厨房区' ? '厨房' : 'フロント')
-            : (emp.position === '厨房区' ? '厨房' : '前台');
+        let posDisplay = '';
+        if (emp.position === '厨房区') {
+            posDisplay = currentLanguage === 'ja' ? '厨房' : '厨房';
+        } else if (emp.position === '拉客') {
+            posDisplay = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+        } else {
+            posDisplay = currentLanguage === 'ja' ? 'フロント' : '前台';
+        }
         const option = document.createElement('option');
         option.value = emp.id;
-        option.textContent = `${emp.name} (${position})`;
+        option.textContent = `${emp.name} (${posDisplay})`;
         select.appendChild(option);
     });
 }
@@ -861,12 +871,17 @@ function updateRestDaysEmployeeSelect() {
     select.innerHTML = `<option value="">${currentLanguage === 'ja' ? 'スタッフを選択' : '选择员工'}</option>`;
     
     employees.sort((a, b) => a.name.localeCompare(b.name)).forEach(emp => {
-        const position = currentLanguage === 'ja' 
-            ? (emp.position === '厨房区' ? '厨房' : 'フロント')
-            : (emp.position === '厨房区' ? '厨房' : '前台');
+        let posDisplay = '';
+        if (emp.position === '厨房区') {
+            posDisplay = currentLanguage === 'ja' ? '厨房' : '厨房';
+        } else if (emp.position === '拉客') {
+            posDisplay = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+        } else {
+            posDisplay = currentLanguage === 'ja' ? 'フロント' : '前台';
+        }
         const option = document.createElement('option');
         option.value = emp.id;
-        option.textContent = `${emp.name} (${position})`;
+        option.textContent = `${emp.name} (${posDisplay})`;
         select.appendChild(option);
     });
 }
@@ -979,10 +994,12 @@ function addSchedule() {
     if (type === 'work') {
         scheduleData.startTime = startTime;
         scheduleData.endTime = endTime;
+        scheduleData.status = 'present';
     } else {
         scheduleData.startTime = '00:00';
         scheduleData.endTime = '00:00';
         scheduleData.notes = currentLanguage === 'ja' ? '休み' : '休息';
+        scheduleData.status = 'holiday';
     }
     
     if (!window.database) {
@@ -1256,10 +1273,12 @@ function applyQuickWeekSchedule() {
             
             scheduleData.startTime = startTime;
             scheduleData.endTime = endTime;
+            scheduleData.status = 'present';
         } else {
             scheduleData.startTime = '00:00';
             scheduleData.endTime = '00:00';
             scheduleData.notes = currentLanguage === 'ja' ? '休み' : '休息';
+            scheduleData.status = 'holiday';
         }
         
         const existingSchedule = findScheduleByEmployeeAndDate(employeeId, dateString);
@@ -1393,6 +1412,7 @@ function applyRestDays() {
             startTime: '00:00',
             endTime: '00:00',
             notes: currentLanguage === 'ja' ? '休み' : '休息',
+            status: 'holiday',
             updatedAt: Date.now()
         };
         
@@ -1429,9 +1449,14 @@ function buildWeeklyRowHtml(employee, days, schedulesByEmployee) {
     const employeeSchedules = schedulesByEmployee[employee.id] || {};
     const weeklyHours = calculateWeeklyHours(employee.id);
     
-    const positionDisplay = currentLanguage === 'ja' 
-        ? (employee.position === '厨房区' ? '厨房' : 'フロント')
-        : (employee.position === '厨房区' ? '厨房' : '前台');
+    let positionDisplay = '';
+    if (employee.position === '厨房区') {
+        positionDisplay = currentLanguage === 'ja' ? '厨房' : '厨房';
+    } else if (employee.position === '拉客') {
+        positionDisplay = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+    } else {
+        positionDisplay = currentLanguage === 'ja' ? 'フロント' : '前台';
+    }
     
     return `
         <div class="week-row">
@@ -1454,10 +1479,14 @@ function buildWeeklyRowHtml(employee, days, schedulesByEmployee) {
                         scheduleText = currentLanguage === 'ja' ? '休' : '休';
                     } else {
                         scheduleClass = 'work';
+                        const shiftType = getShiftTypeLabel(schedule.startTime);
+                        const statusLabel = getStatusLabel(schedule.status || 'present');
+                        const timeStr = `${schedule.startTime ? schedule.startTime.substring(0,5) : ''}-${schedule.endTime ? schedule.endTime.substring(0,5) : ''}`;
                         scheduleText = `
                             <div class="compact-time">
-                                <span>${schedule.startTime ? schedule.startTime.substring(0, 5) : ''}</span>
-                                <span>${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}</span>
+                                <span>${timeStr}</span>
+                                ${shiftType ? `<span class="shift-badge">${shiftType}</span>` : ''}
+                                <span class="status-badge ${schedule.status === 'early_leave' ? 'early-leave' : ''}">${statusLabel}</span>
                             </div>
                         `;
                     }
@@ -1519,9 +1548,10 @@ function renderWeeklySchedule() {
                     <div class="week-header-cell ${isToday ? 'today' : ''}">
                         <div class="week-header-day">${dayNames[index]}</div>
                         <div class="week-header-date">${month}/${dayNum}</div>
-                        <div class="week-header-count" title="${currentLanguage === 'ja' ? 'フロント / 厨房 出勤人数' : '前台 / 厨房 出勤人数'}">
-                            <span class="count-pill front">${headcount.front}</span>
-                            <span class="count-pill kitchen">${headcount.kitchen}</span>
+                        <div class="week-header-count" title="${currentLanguage === 'ja' ? 'フロント / 厨房 / ラッカ 出勤人数' : '前台 / 厨房 / 拉客 出勤人数'}">
+                            ${headcount.front > 0 ? `<span class="count-pill front">${headcount.front}</span>` : ''}
+                            ${headcount.kitchen > 0 ? `<span class="count-pill kitchen">${headcount.kitchen}</span>` : ''}
+                            ${headcount.rakka > 0 ? `<span class="count-pill rakka">${headcount.rakka}</span>` : ''}
                         </div>
                     </div>
                 `;
@@ -1529,9 +1559,9 @@ function renderWeeklySchedule() {
         </div>
     `;
     
-    // Tách rõ 2 nhóm: Front desk / Kitchen, mỗi nhóm có dải tiêu đề riêng
     const frontDeskEmployees = employees.filter(e => e.position === '前台/服务区');
     const kitchenEmployees = employees.filter(e => e.position === '厨房区');
+    const rakkaEmployees = employees.filter(e => e.position === '拉客');
     
     if (frontDeskEmployees.length > 0) {
         const title = currentLanguage === 'ja' ? 'フロント / サービス' : '前台 / 服务';
@@ -1559,6 +1589,21 @@ function renderWeeklySchedule() {
             </div>
         `;
         kitchenEmployees.forEach(employee => {
+            html += buildWeeklyRowHtml(employee, days, schedulesByEmployee);
+        });
+    }
+    
+    if (rakkaEmployees.length > 0) {
+        const title = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+        html += `
+            <div class="week-position-header rakka">
+                <div class="week-position-header-label">
+                    <i class="fas fa-handshake"></i> ${title}
+                    <span class="week-position-count">${rakkaEmployees.length}</span>
+                </div>
+            </div>
+        `;
+        rakkaEmployees.forEach(employee => {
             html += buildWeeklyRowHtml(employee, days, schedulesByEmployee);
         });
     }
@@ -1604,8 +1649,8 @@ function editDaySchedule(employeeId, date) {
                         <div style="font-weight: 700; color: var(--dark);">${employee.name}</div>
                         <div style="font-size: 14px; color: var(--gray-500);">
                             ${currentLanguage === 'ja' ? 
-                                (employee.position === '厨房区' ? '厨房' : 'フロント') : 
-                                (employee.position === '厨房区' ? '厨房' : '前台')}
+                                (employee.position === '厨房区' ? '厨房' : employee.position === '拉客' ? 'ラッカ' : 'フロント') : 
+                                (employee.position === '厨房区' ? '厨房' : employee.position === '拉客' ? '拉客' : '前台')}
                         </div>
                     </div>
                 </div>
@@ -1743,10 +1788,12 @@ function saveDaySchedule(employeeId, date) {
         
         scheduleData.startTime = startTime;
         scheduleData.endTime = endTime;
+        scheduleData.status = 'present';
     } else {
         scheduleData.startTime = '00:00';
         scheduleData.endTime = '00:00';
         scheduleData.notes = currentLanguage === 'ja' ? '休み' : '休息';
+        scheduleData.status = 'holiday';
     }
     
     if (!window.database) {
@@ -1979,32 +2026,44 @@ function copyScheduleAsText(employeeIdParam) {
     const monthlyHours = calculateMonthlyHours(employeeId);
     const days = generateWeekDays(startDate);
     
-    // Generate formatted text
     let text = `【${employee.name} ${currentLanguage === 'ja' ? 'スケジュール' : '排班表'}】\n`;
-    text += `${currentLanguage === 'ja' ? '職種:' : '职位:'} ${currentLanguage === 'ja' ? 
-        (employee.position === '厨房区' ? '厨房' : 'フロント') : 
-        (employee.position === '厨房区' ? '厨房' : '前台')}\n`;
+    let posDisplay = '';
+    if (employee.position === '厨房区') {
+        posDisplay = currentLanguage === 'ja' ? '厨房' : '厨房';
+    } else if (employee.position === '拉客') {
+        posDisplay = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+    } else {
+        posDisplay = currentLanguage === 'ja' ? 'フロント' : '前台';
+    }
+    text += `${currentLanguage === 'ja' ? '職種:' : '职位:'} ${posDisplay}\n`;
     text += `${currentLanguage === 'ja' ? '日付:' : '日期:'} ${formatDate(startDate)} ${currentLanguage === 'ja' ? '〜' : '至'} ${formatDate(endDate)}\n`;
     text += `${currentLanguage === 'ja' ? '今週:' : '本周:'} ${weeklyHours}${currentLanguage === 'ja' ? '時間' : '小时'} | ${currentLanguage === 'ja' ? '今月:' : '本月:'} ${monthlyHours}${currentLanguage === 'ja' ? '時間' : '小时'}\n\n`;
     text += `📅 ${currentLanguage === 'ja' ? '今週のスケジュール:' : '本周排班:'}\n`;
     
-    // Day names for display
     const dayNames = currentLanguage === 'ja' 
         ? ['月', '火', '水', '木', '金', '土', '日']
         : ['一', '二', '三', '四', '五', '六', '日'];
     
     days.forEach((day, index) => {
         const schedule = weekSchedule.find(s => s.date === day.dateString);
-        const scheduleText = schedule ? 
-            (schedule.isDayOff ? '🏖️ ' + (currentLanguage === 'ja' ? '休み' : '休息') : `🕐 ${schedule.startTime ? schedule.startTime.substring(0, 5) : ''}-${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}`) : 
-            '📭 ' + (currentLanguage === 'ja' ? 'なし' : '无');
-        
+        let scheduleText = '';
+        if (schedule) {
+            if (schedule.isDayOff) {
+                scheduleText = '🏖️ ' + (currentLanguage === 'ja' ? '休み' : '休息');
+            } else {
+                const shiftType = getShiftTypeLabel(schedule.startTime);
+                const statusLabel = getStatusLabel(schedule.status || 'present');
+                scheduleText = `🕐 ${schedule.startTime ? schedule.startTime.substring(0,5) : ''}-${schedule.endTime ? schedule.endTime.substring(0,5) : ''}`;
+                if (shiftType) scheduleText += ` ${shiftType}`;
+                scheduleText += ` ${statusLabel}`;
+            }
+        } else {
+            scheduleText = '📭 ' + (currentLanguage === 'ja' ? 'なし' : '无');
+        }
         text += `${dayNames[index]} (${day.date}): ${scheduleText}\n`;
     });
     
-    text += `\n📍 ${currentLanguage === 'ja' ? '勤務エリア:' : '工作区域:'} ${employee.position === '厨房区' ? 
-        (currentLanguage === 'ja' ? '厨房 👨‍🍳' : '厨房 👨‍🍳') : 
-        (currentLanguage === 'ja' ? 'フロント/サービス 💁' : '前台/服务 💁')}\n`;
+    text += `\n📍 ${currentLanguage === 'ja' ? '勤務エリア:' : '工作区域:'} ${posDisplay}\n`;
     text += `📊 ${currentLanguage === 'ja' ? '今週:' : '本周:'} ${weekSchedule.filter(s => !s.isDayOff).length}${currentLanguage === 'ja' ? '勤務日' : '工作日'}, ${weekSchedule.filter(s => s.isDayOff).length}${currentLanguage === 'ja' ? '休日' : '休息日'}\n`;
     text += `\n⏰ ${currentLanguage === 'ja' ? '生成日時:' : '生成时间:'} ${new Date().toLocaleString(currentLanguage === 'ja' ? 'ja-JP' : 'zh-CN', { 
         year: 'numeric', 
@@ -2014,7 +2073,6 @@ function copyScheduleAsText(employeeIdParam) {
         minute: '2-digit'
     })}`;
     
-    // Copy to clipboard
     navigator.clipboard.writeText(text)
         .then(() => {
             showMessage(currentLanguage === 'ja' ? 'クリップボードにコピーしました' : '已复制到剪贴板', 'success');
@@ -2024,7 +2082,6 @@ function copyScheduleAsText(employeeIdParam) {
         .catch(err => {
             console.error('Copy failed:', err);
             
-            // Fallback
             const textarea = document.createElement('textarea');
             textarea.value = text;
             document.body.appendChild(textarea);
@@ -2042,11 +2099,7 @@ function copyScheduleAsText(employeeIdParam) {
         });
 }
 
-// ==================== PRINT SYSTEM (in ngay trong trang) ====================
-// Thay vì mở popup window (dễ bị chặn / tự đóng giữa chừng trên điện thoại),
-// nội dung in được render thẳng vào #printOutput rồi gọi window.print().
-// CSS @media print sẽ ẩn toàn bộ giao diện app và chỉ hiện #printOutput.
-
+// ==================== PRINT SYSTEM ====================
 function setPrintPageSize(size) {
     let styleTag = document.getElementById('dynamicPrintPageStyle');
     if (!styleTag) {
@@ -2059,8 +2112,6 @@ function setPrintPageSize(size) {
 
 function triggerPrint() {
     document.body.classList.add('is-printing');
-    // Đợi 1 nhịp để trình duyệt kịp render layout trước khi mở hộp thoại in
-    // (giúp ổn định hơn trên trình duyệt di động)
     setTimeout(() => {
         window.print();
     }, 60);
@@ -2089,6 +2140,10 @@ function buildPrintDayRow(day, schedule, dayNames) {
             const end = schedule.endTime ? schedule.endTime.substring(0, 5) : '';
             timeDisplay = `${start} - ${end}`;
             hoursDisplay = `${calculateShiftHours(schedule.startTime, schedule.endTime)}h`;
+            const shiftType = getShiftTypeLabel(schedule.startTime);
+            if (shiftType) timeDisplay += ` ${shiftType}`;
+            const statusLabel = getStatusLabel(schedule.status || 'present');
+            if (statusLabel) timeDisplay += ` ${statusLabel}`;
         }
     }
 
@@ -2105,7 +2160,6 @@ function buildPrintDayRow(day, schedule, dayNames) {
     `;
 }
 
-// ==================== IN LỊCH CỦA 1 NHÂN VIÊN ====================
 function printEmployeeSchedule() {
     if (!selectedEmployee) {
         showMessage(currentLanguage === 'ja' ? 'スタッフを選択してください' : '请先选择员工', 'warning');
@@ -2121,9 +2175,14 @@ function printEmployeeSchedule() {
     const monthlyHours = calculateMonthlyHours(selectedEmployee);
     const days = generateWeekDays(startDate);
 
-    const positionDisplay = currentLanguage === 'ja'
-        ? (employee.position === '厨房区' ? '厨房' : 'フロント')
-        : (employee.position === '厨房区' ? '厨房' : '前台');
+    let posDisplay = '';
+    if (employee.position === '厨房区') {
+        posDisplay = currentLanguage === 'ja' ? '厨房' : '厨房';
+    } else if (employee.position === '拉客') {
+        posDisplay = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+    } else {
+        posDisplay = currentLanguage === 'ja' ? 'フロント' : '前台';
+    }
 
     const dayNames = currentLanguage === 'ja'
         ? ['月', '火', '水', '木', '金', '土', '日']
@@ -2137,7 +2196,7 @@ function printEmployeeSchedule() {
             <div class="print-sheet-header">
                 <div class="print-company">鍛治町酒場 神田店</div>
                 <div class="print-employee-name">${employee.name}</div>
-                <div class="print-sub">${positionDisplay} ・ ${formatDate(startDate)} - ${formatDate(endDate)}</div>
+                <div class="print-sub">${posDisplay} ・ ${formatDate(startDate)} - ${formatDate(endDate)}</div>
             </div>
 
             <div class="print-summary-row">
@@ -2180,7 +2239,6 @@ function printEmployeeSchedule() {
     triggerPrint();
 }
 
-// ==================== IN TOÀN BỘ LỊCH TUẦN (vẫn giữ lại, gọi bằng tay khi cần) ====================
 function printAllSchedule() {
     const { startDate, endDate } = getWeekDates(currentWeek);
     const weekSchedule = getWeekSchedules(startDate, endDate);
@@ -2226,6 +2284,8 @@ function printAllSchedule() {
                                     const start = schedule.startTime ? schedule.startTime.substring(0, 5) : '';
                                     const end = schedule.endTime ? schedule.endTime.substring(0, 5) : '';
                                     content = `${start}<br>${end}`;
+                                    const shiftType = getShiftTypeLabel(schedule.startTime);
+                                    if (shiftType) content += `<br><small>${shiftType}</small>`;
                                 }
                             }
                             return `<div class="print-all-cell ${cls}">${content}</div>`;
@@ -2239,6 +2299,7 @@ function printAllSchedule() {
 
     const frontDeskEmployees = employees.filter(e => e.position === '前台/服务区');
     const kitchenEmployees = employees.filter(e => e.position === '厨房区');
+    const rakkaEmployees = employees.filter(e => e.position === '拉客');
 
     const html = `
         <div class="print-sheet print-sheet-all">
@@ -2254,6 +2315,7 @@ function printAllSchedule() {
             </div>
             ${renderPrintGroup(currentLanguage === 'ja' ? 'フロント / サービス' : '前台 / 服务', frontDeskEmployees)}
             ${renderPrintGroup(currentLanguage === 'ja' ? '厨房' : '厨房', kitchenEmployees)}
+            ${renderPrintGroup(currentLanguage === 'ja' ? 'ラッカ' : '拉客', rakkaEmployees)}
             <div class="print-footer">
                 ${currentLanguage === 'ja' ? '印刷日:' : '打印日期:'} ${new Date().toLocaleDateString(currentLanguage === 'ja' ? 'ja-JP' : 'zh-CN')}
             </div>
@@ -2267,9 +2329,7 @@ function printAllSchedule() {
     triggerPrint();
 }
 
-// ==================== CHIA SẺ LỊCH TUẦN (thay cho nút in cuối cùng) ====================
-// Trên điện thoại: mở bảng chia sẻ gốc của hệ điều hành (gửi qua LINE / Zalo / Messenger / SMS...)
-// Trên máy tính (không có Web Share API): tự động copy nội dung vào clipboard.
+// ==================== SHARE WEEKLY SCHEDULE ====================
 function shareWeeklySchedule() {
     const { startDate, endDate } = getWeekDates(currentWeek);
     const days = generateWeekDays(startDate);
@@ -2280,6 +2340,7 @@ function shareWeeklySchedule() {
 
     const frontLabel = currentLanguage === 'ja' ? '🚪 フロント/サービス' : '🚪 前台/服务';
     const kitchenLabel = currentLanguage === 'ja' ? '🍳 厨房' : '🍳 厨房';
+    const rakkaLabel = currentLanguage === 'ja' ? '🤝 ラッカ' : '🤝 拉客';
 
     function groupText(label, groupEmployees) {
         if (groupEmployees.length === 0) return '';
@@ -2299,23 +2360,29 @@ function shareWeeklySchedule() {
 
     const frontDeskEmployees = employees.filter(e => e.position === '前台/服务区');
     const kitchenEmployees = employees.filter(e => e.position === '厨房区');
+    const rakkaEmployees = employees.filter(e => e.position === '拉客');
 
     let text = `📅 鍛治町酒場 神田店\n`;
     text += `${currentLanguage === 'ja' ? '週間シフト' : '每周排班'}: ${formatDate(startDate)} - ${formatDate(endDate)}\n\n`;
     text += groupText(frontLabel, frontDeskEmployees);
     text += groupText(kitchenLabel, kitchenEmployees);
+    text += groupText(rakkaLabel, rakkaEmployees);
 
     text += `${currentLanguage === 'ja' ? '📊 日別の人数' : '📊 每日人数'}\n`;
     days.forEach((day, index) => {
         const headcount = getDayHeadcount(day.dateString);
-        text += `${dayNames[index]} (${day.date}): 🚪${headcount.front} 🍳${headcount.kitchen}\n`;
+        let parts = [];
+        if (headcount.front > 0) parts.push(`🚪${headcount.front}`);
+        if (headcount.kitchen > 0) parts.push(`🍳${headcount.kitchen}`);
+        if (headcount.rakka > 0) parts.push(`🤝${headcount.rakka}`);
+        text += `${dayNames[index]} (${day.date}): ${parts.join(' ') || '0'}\n`;
     });
 
     if (navigator.share) {
         navigator.share({
             title: currentLanguage === 'ja' ? '週間シフト' : '每周排班',
             text: text
-        }).catch(() => { /* Người dùng huỷ chia sẻ, không cần báo lỗi */ });
+        }).catch(() => {});
     } else {
         navigator.clipboard.writeText(text)
             .then(() => {
@@ -2339,7 +2406,6 @@ function shareWeeklySchedule() {
 
 // ==================== SETUP EVENT LISTENERS ====================
 function setupEventListeners() {
-    // Language switch button
     const languageSwitchBtn = document.getElementById('languageSwitch');
     if (languageSwitchBtn) {
         languageSwitchBtn.addEventListener('click', function() {
@@ -2349,14 +2415,12 @@ function setupEventListeners() {
         });
     }
     
-    // Close modal when clicking background
     document.addEventListener('click', function(event) {
         if (event.target.classList.contains('modal')) {
             closeModal(event.target.id);
         }
     });
     
-    // Keyboard shortcuts
     document.addEventListener('keydown', function(event) {
         if (event.ctrlKey || event.metaKey) {
             switch(event.key.toLowerCase()) {
@@ -2367,14 +2431,12 @@ function setupEventListeners() {
                     }
                     break;
                 case 'p':
-                    // Ctrl+P for print
                     if (selectedEmployee) {
                         printEmployeeSchedule();
                         event.preventDefault();
                     }
                     break;
                 case 'c':
-                    // Ctrl+C for copy
                     if (selectedEmployee) {
                         copyScheduleAsText();
                         event.preventDefault();
@@ -2387,7 +2449,6 @@ function setupEventListeners() {
             }
         }
         
-        // Escape key to close modal
         if (event.key === 'Escape') {
             const openModal = document.querySelector('.modal[style*="display: flex"]');
             if (openModal) {
@@ -2396,7 +2457,6 @@ function setupEventListeners() {
         }
     });
     
-    // Fix for iOS date input
     const dateInputs = document.querySelectorAll('input[type="date"]');
     dateInputs.forEach(input => {
         input.addEventListener('focus', function() {
@@ -2407,7 +2467,6 @@ function setupEventListeners() {
         });
     });
     
-    // Save state when leaving page
     window.addEventListener('beforeunload', function(e) {
         const activeView = document.querySelector('.view.active');
         if (activeView) {
@@ -2417,7 +2476,6 @@ function setupEventListeners() {
         localStorage.setItem('appLanguage', currentLanguage);
     });
     
-    // Restore saved view
     const savedView = localStorage.getItem('lastView');
     if (savedView) {
         setTimeout(() => switchView(savedView), 100);
@@ -2443,6 +2501,7 @@ function showTodaySchedule() {
     } else {
         const frontDeskSchedules = todaySchedules.filter(s => s.employeePosition === '前台/服务区');
         const kitchenSchedules = todaySchedules.filter(s => s.employeePosition === '厨房区');
+        const rakkaSchedules = todaySchedules.filter(s => s.employeePosition === '拉客');
         
         let html = '';
         
@@ -2458,6 +2517,12 @@ function showTodaySchedule() {
             html += kitchenSchedules.map(schedule => createTodayItem(schedule)).join('');
         }
         
+        if (rakkaSchedules.length > 0) {
+            const title = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+            html += `<h4 style="margin-top: 24px; margin-bottom: 16px; color: #0d9488; font-weight: 700;"><i class="fas fa-handshake"></i> ${title}</h4>`;
+            html += rakkaSchedules.map(schedule => createTodayItem(schedule)).join('');
+        }
+        
         container.innerHTML = html;
     }
     
@@ -2465,21 +2530,38 @@ function showTodaySchedule() {
 }
 
 function createTodayItem(schedule) {
-    const position = currentLanguage === 'ja' 
-        ? (schedule.employeePosition === '厨房区' ? '厨房' : 'フロント')
-        : (schedule.employeePosition === '厨房区' ? '厨房' : '前台');
+    let posDisplay = '';
+    if (schedule.employeePosition === '厨房区') {
+        posDisplay = currentLanguage === 'ja' ? '厨房' : '厨房';
+    } else if (schedule.employeePosition === '拉客') {
+        posDisplay = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+    } else {
+        posDisplay = currentLanguage === 'ja' ? 'フロント' : '前台';
+    }
+    
+    let statusText = '';
+    let statusClass = '';
+    if (schedule.isDayOff) {
+        statusText = currentLanguage === 'ja' ? '休み' : '休息';
+        statusClass = 'rest';
+    } else {
+        const statusLabel = getStatusLabel(schedule.status || 'present');
+        const shiftType = getShiftTypeLabel(schedule.startTime);
+        statusText = `${schedule.startTime ? schedule.startTime.substring(0, 5) : ''} - ${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}`;
+        if (shiftType) statusText += ` (${shiftType})`;
+        if (statusLabel) statusText += ` ${statusLabel}`;
+        statusClass = 'work';
+    }
     
     return `
-        <div class="today-item ${schedule.isDayOff ? 'rest' : 'work'}">
+        <div class="today-item ${statusClass}">
             <div>
                 <div style="font-weight: 700; color: var(--dark);">${schedule.employeeName}</div>
-                <div style="font-size: 13px; color: var(--gray-500); font-weight: 500;">${position}</div>
+                <div style="font-size: 13px; color: var(--gray-500); font-weight: 500;">${posDisplay}</div>
             </div>
             <div style="text-align: right;">
                 <div style="font-weight: 700; color: ${schedule.isDayOff ? 'var(--warning)' : 'var(--success)'};">
-                    ${schedule.isDayOff ? 
-                        (currentLanguage === 'ja' ? '休み' : '休息') : 
-                        `${schedule.startTime ? schedule.startTime.substring(0, 5) : ''} - ${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}`}
+                    ${statusText}
                 </div>
                 ${!schedule.isDayOff ? `
                     <div style="font-size: 12px; color: var(--gray-500); font-weight: 500;">
@@ -2495,7 +2577,6 @@ function showStats() {
     const container = document.getElementById('statsGrid');
     if (!container) return;
     
-    // Tổng thời gian làm việc trong tuần của tất cả nhân viên (đã làm tròn từng người trước khi cộng)
     let totalWeekHours = 0;
     employees.forEach(employee => {
         totalWeekHours += calculateWeeklyHours(employee.id);
@@ -2509,6 +2590,7 @@ function showStats() {
     const monthHours = roundHours(employees.reduce((sum, emp) => sum + calculateMonthlyHours(emp.id), 0), 1);
     const frontDeskCount = employees.filter(e => e.position === '前台/服务区').length;
     const kitchenCount = employees.filter(e => e.position === '厨房区').length;
+    const rakkaCount = employees.filter(e => e.position === '拉客').length;
     const avgWeekHours = roundHours(totalWeekHours / (employees.length || 1), 1);
     
     container.innerHTML = `
@@ -2541,12 +2623,368 @@ function showStats() {
             <p>${currentLanguage === 'ja' ? '厨房' : '厨房'}</p>
         </div>
         <div class="stat-card">
+            <h4>${rakkaCount}</h4>
+            <p>${currentLanguage === 'ja' ? 'ラッカ' : '拉客'}</p>
+        </div>
+        <div class="stat-card">
             <h4>${avgWeekHours}h</h4>
             <p>${currentLanguage === 'ja' ? '平均週時間' : '平均周工时'}</p>
         </div>
     `;
     
     openModal('statsModal');
+}
+
+// ==================== NEW FEATURES ====================
+
+// ---------- 1. Sửa vị trí nhân viên ----------
+function editEmployeePosition(employeeId) {
+    const employee = employees.find(e => e.id === employeeId);
+    if (!employee) {
+        showMessage(currentLanguage === 'ja' ? 'スタッフが見つかりません' : '找不到员工', 'error');
+        return;
+    }
+
+    document.getElementById('editPositionEmployeeId').value = employeeId;
+    document.getElementById('editPositionName').textContent = employee.name;
+    
+    let currentPos = '';
+    if (employee.position === '厨房区') {
+        currentPos = currentLanguage === 'ja' ? '厨房' : '厨房';
+    } else if (employee.position === '拉客') {
+        currentPos = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+    } else {
+        currentPos = currentLanguage === 'ja' ? 'フロント' : '前台';
+    }
+    document.getElementById('editPositionCurrent').textContent = currentPos;
+
+    document.querySelectorAll('#editPositionOptions .position-option').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.position === employee.position) {
+            btn.classList.add('active');
+        }
+    });
+
+    openModal('editPositionModal');
+}
+
+function selectEditPosition(button) {
+    document.querySelectorAll('#editPositionOptions .position-option').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    button.classList.add('active');
+}
+
+function updateEmployeePosition() {
+    const employeeId = document.getElementById('editPositionEmployeeId').value;
+    const activeBtn = document.querySelector('#editPositionOptions .position-option.active');
+
+    if (!activeBtn) {
+        showMessage(currentLanguage === 'ja' ? '職種を選択してください' : '请选择职位', 'warning');
+        return;
+    }
+
+    const newPosition = activeBtn.dataset.position;
+    const employee = employees.find(e => e.id === employeeId);
+    if (!employee) return;
+
+    if (newPosition === employee.position) {
+        showMessage(currentLanguage === 'ja' ? '変更はありません' : '未作更改', 'info');
+        closeModal('editPositionModal');
+        return;
+    }
+
+    window.database.ref(`employees/${employeeId}/position`).set(newPosition)
+        .then(() => {
+            closeModal('editPositionModal');
+            let posDisplay = '';
+            if (newPosition === '厨房区') {
+                posDisplay = currentLanguage === 'ja' ? '厨房' : '厨房';
+            } else if (newPosition === '拉客') {
+                posDisplay = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+            } else {
+                posDisplay = currentLanguage === 'ja' ? 'フロント' : '前台';
+            }
+            const msg = currentLanguage === 'ja'
+                ? `${employee.name} の職種を ${posDisplay} に変更しました`
+                : `已将 ${employee.name} 的职位更改为 ${posDisplay}`;
+            showMessage(msg, 'success');
+            renderEmployeeCards();
+            renderWeeklySchedule();
+            if (selectedEmployee === employeeId) {
+                showEmployeeDetail(employeeId);
+            }
+        })
+        .catch(error => {
+            showMessage((currentLanguage === 'ja' ? '更新失敗: ' : '更新失败: ') + error.message, 'error');
+        });
+}
+
+// ---------- 2. Đánh dấu 早退 (về sớm) ----------
+function toggleScheduleStatus(employeeId, date) {
+    const schedule = findScheduleByEmployeeAndDate(employeeId, date);
+    if (!schedule) {
+        showMessage(currentLanguage === 'ja' ? 'シフトが見つかりません' : '找不到排班', 'warning');
+        return;
+    }
+
+    if (schedule.isDayOff) {
+        showMessage(currentLanguage === 'ja' ? '休みの日は変更できません' : '休息日不能更改', 'warning');
+        return;
+    }
+
+    const currentStatus = schedule.status || 'present';
+    const newStatus = currentStatus === 'early_leave' ? 'present' : 'early_leave';
+
+    window.database.ref(`schedules/${schedule.id}/status`).set(newStatus)
+        .then(() => {
+            const msg = currentLanguage === 'ja'
+                ? (newStatus === 'early_leave' ? '早退 に設定しました' : '早退 を解除しました')
+                : (newStatus === 'early_leave' ? '已设为早退' : '已取消早退');
+            showMessage(msg, 'success');
+            renderWeeklySchedule();
+            if (selectedEmployee === employeeId) {
+                showEmployeeWeekSchedule(employeeId);
+            }
+        })
+        .catch(error => {
+            showMessage((currentLanguage === 'ja' ? '更新失敗: ' : '更新失败: ') + error.message, 'error');
+        });
+}
+
+// ---------- 3. Phân loại ca (早班 / 晚班) ----------
+function getShiftType(startTime) {
+    if (!startTime) return '';
+    const parts = startTime.split(':');
+    if (parts.length < 2) return '';
+    const hour = parseInt(parts[0]);
+    if (isNaN(hour)) return '';
+    return hour < 17 ? '早班' : '晚班';
+}
+
+function getShiftTypeLabel(startTime, lang = currentLanguage) {
+    const type = getShiftType(startTime);
+    if (!type) return '';
+    if (lang === 'ja') {
+        return type === '早班' ? '朝' : '夜';
+    }
+    return type;
+}
+
+function getStatusLabel(status, lang = currentLanguage) {
+    const labels = {
+        'present': { ja: '出勤', zh: '出勤' },
+        'early_leave': { ja: '早退', zh: '早退' },
+        'absent': { ja: '欠勤', zh: '缺勤' },
+        'holiday': { ja: '休暇', zh: '休假' }
+    };
+    const def = { ja: '出勤', zh: '出勤' };
+    return (labels[status] || def)[lang] || def.ja;
+}
+
+// ---------- 4. Copy lịch của 1 nhân viên sang tuần sau ----------
+function copyScheduleToNextWeek(employeeId) {
+    if (!employeeId) {
+        showMessage(currentLanguage === 'ja' ? 'スタッフを選択してください' : '请选择员工', 'warning');
+        return;
+    }
+
+    const employee = employees.find(e => e.id === employeeId);
+    if (!employee) return;
+
+    const { startDate } = getWeekDates(0);
+    const weekSchedule = getEmployeeSchedulesForWeek(employeeId, startDate,
+        new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000));
+
+    if (weekSchedule.length === 0) {
+        const msg = currentLanguage === 'ja' ? '今週のシフトがありません' : '本周没有排班';
+        showMessage(msg, 'warning');
+        return;
+    }
+
+    const nextWeekStart = new Date(startDate);
+    nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+
+    const promises = [];
+    let skippedCount = 0;
+
+    weekSchedule.forEach(schedule => {
+        const dateObj = new Date(schedule.date);
+        const dayOfWeek = dateObj.getDay();
+        const newDate = new Date(nextWeekStart);
+        newDate.setDate(nextWeekStart.getDate() + dayOfWeek);
+        const dateString = newDate.toISOString().split('T')[0];
+
+        const existing = findScheduleByEmployeeAndDate(employeeId, dateString);
+        if (existing) {
+            skippedCount++;
+            return;
+        }
+
+        const scheduleData = {
+            employeeId: employeeId,
+            employeeName: employee.name,
+            employeePosition: employee.position,
+            date: dateString,
+            isDayOff: schedule.isDayOff || false,
+            startTime: schedule.startTime || '00:00',
+            endTime: schedule.endTime || '00:00',
+            notes: schedule.notes || '',
+            status: schedule.status || 'present',
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        };
+
+        promises.push(window.database.ref('schedules').push().set(scheduleData));
+    });
+
+    if (promises.length === 0) {
+        const msg = currentLanguage === 'ja'
+            ? '来週のシフトは既に設定されています'
+            : '下周的排班已存在';
+        showMessage(msg, 'info');
+        return;
+    }
+
+    Promise.all(promises)
+        .then(() => {
+            const msg = currentLanguage === 'ja'
+                ? `${promises.length}件のシフトを来週にコピーしました${skippedCount > 0 ? ` (${skippedCount}件スキップ)` : ''}`
+                : `已复制 ${promises.length} 个班次到下周${skippedCount > 0 ? ` (跳过 ${skippedCount} 个)` : ''}`;
+            showMessage(msg, 'success');
+            renderWeeklySchedule();
+            if (selectedEmployee === employeeId) {
+                showEmployeeWeekSchedule(employeeId);
+            }
+        })
+        .catch(error => {
+            showMessage((currentLanguage === 'ja' ? 'コピー失敗: ' : '复制失败: ') + error.message, 'error');
+        });
+}
+
+// ---------- 5. Copy toàn bộ lịch tuần (tất cả nhân viên) ----------
+function copyAllSchedulesToNextWeek() {
+    const confirmMsg = currentLanguage === 'ja'
+        ? '全スタッフの今週のシフトを来週にコピーしますか？\n（既存のシフトはスキップされます）'
+        : '确定要将所有员工的本周排班复制到下周吗？\n（已存在的排班将被跳过）';
+
+    if (!confirm(confirmMsg)) return;
+
+    const { startDate } = getWeekDates(0);
+    const weekSchedule = getWeekSchedules(startDate,
+        new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000));
+
+    if (weekSchedule.length === 0) {
+        const msg = currentLanguage === 'ja' ? '今週のシフトがありません' : '本周没有排班';
+        showMessage(msg, 'warning');
+        return;
+    }
+
+    const employeeSchedules = {};
+    weekSchedule.forEach(schedule => {
+        if (!employeeSchedules[schedule.employeeId]) {
+            employeeSchedules[schedule.employeeId] = [];
+        }
+        employeeSchedules[schedule.employeeId].push(schedule);
+    });
+
+    const nextWeekStart = new Date(startDate);
+    nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+
+    const allPromises = [];
+    let totalCopied = 0;
+    let totalSkipped = 0;
+
+    for (const [employeeId, schedules] of Object.entries(employeeSchedules)) {
+        const employee = employees.find(e => e.id === employeeId);
+        if (!employee) continue;
+
+        schedules.forEach(schedule => {
+            const dateObj = new Date(schedule.date);
+            const dayOfWeek = dateObj.getDay();
+            const newDate = new Date(nextWeekStart);
+            newDate.setDate(nextWeekStart.getDate() + dayOfWeek);
+            const dateString = newDate.toISOString().split('T')[0];
+
+            const existing = findScheduleByEmployeeAndDate(employeeId, dateString);
+            if (existing) {
+                totalSkipped++;
+                return;
+            }
+
+            const scheduleData = {
+                employeeId: employeeId,
+                employeeName: employee.name,
+                employeePosition: employee.position,
+                date: dateString,
+                isDayOff: schedule.isDayOff || false,
+                startTime: schedule.startTime || '00:00',
+                endTime: schedule.endTime || '00:00',
+                notes: schedule.notes || '',
+                status: schedule.status || 'present',
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+
+            allPromises.push(window.database.ref('schedules').push().set(scheduleData));
+            totalCopied++;
+        });
+    }
+
+    if (allPromises.length === 0) {
+        const msg = currentLanguage === 'ja'
+            ? '来週のシフトは全て既に設定されています'
+            : '下周的排班已全部存在';
+        showMessage(msg, 'info');
+        return;
+    }
+
+    Promise.all(allPromises)
+        .then(() => {
+            const msg = currentLanguage === 'ja'
+                ? `${totalCopied}件のシフトを来週にコピーしました${totalSkipped > 0 ? ` (${totalSkipped}件スキップ)` : ''}`
+                : `已复制 ${totalCopied} 个班次到下周${totalSkipped > 0 ? ` (跳过 ${totalSkipped} 个)` : ''}`;
+            showMessage(msg, 'success');
+            renderWeeklySchedule();
+        })
+        .catch(error => {
+            showMessage((currentLanguage === 'ja' ? 'コピー失敗: ' : '复制失败: ') + error.message, 'error');
+        });
+}
+
+// ---------- 6. Mở modal chọn ngày để đánh dấu 早退 ----------
+function openEarlyLeaveModal(employeeId) {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('earlyLeaveEmployeeId').value = employeeId;
+    document.getElementById('earlyLeaveDate').value = today;
+    document.getElementById('earlyLeaveDate').min = today;
+
+    const schedule = findScheduleByEmployeeAndDate(employeeId, today);
+    const statusEl = document.getElementById('earlyLeaveCurrentStatus');
+    if (schedule && !schedule.isDayOff) {
+        const status = schedule.status || 'present';
+        const label = getStatusLabel(status);
+        statusEl.textContent = currentLanguage === 'ja' ? `現在: ${label}` : `当前: ${label}`;
+        statusEl.style.color = status === 'early_leave' ? 'var(--warning)' : 'var(--success)';
+    } else {
+        statusEl.textContent = currentLanguage === 'ja' ? 'シフトなし / 休み' : '无排班 / 休息';
+        statusEl.style.color = 'var(--gray-500)';
+    }
+
+    openModal('earlyLeaveModal');
+}
+
+function applyEarlyLeave() {
+    const employeeId = document.getElementById('earlyLeaveEmployeeId').value;
+    const date = document.getElementById('earlyLeaveDate').value;
+
+    if (!date) {
+        showMessage(currentLanguage === 'ja' ? '日付を選択してください' : '请选择日期', 'warning');
+        return;
+    }
+
+    toggleScheduleStatus(employeeId, date);
+    closeModal('earlyLeaveModal');
 }
 
 // ==================== ERROR HANDLING ====================
