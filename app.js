@@ -38,6 +38,7 @@ function initApp() {
     updateCurrentDate();
     updateLanguage();
     setInterval(updateCurrentDate, 60000);
+    initDragDrop();
 }
 
 // ==================== LANGUAGE FUNCTIONS ====================
@@ -170,7 +171,9 @@ function showMessage(message, type = 'info') {
             'Add failed:': '追加に失敗:',
             'Setting failed:': '設定に失敗:',
             'Refresh error:': '更新エラー:',
-            'An error occurred, please refresh the page and try again': 'エラーが発生しました。ページを更新して再試行してください'
+            'An error occurred, please refresh the page and try again': 'エラーが発生しました。ページを更新して再試行してください',
+            'Same position': '同じ職種です',
+            'Position changed successfully': '職種を変更しました'
         };
         translatedMessage = messageMap[message] || message;
     } else {
@@ -190,7 +193,9 @@ function showMessage(message, type = 'info') {
             'Add failed:': '添加失败:',
             'Setting failed:': '设置失败:',
             'Refresh error:': '刷新错误:',
-            'An error occurred, please refresh the page and try again': '发生错误，请刷新页面重试'
+            'An error occurred, please refresh the page and try again': '发生错误，请刷新页面重试',
+            'Same position': '职位相同',
+            'Position changed successfully': '职位已更改'
         };
         translatedMessage = messageMap[message] || message;
     }
@@ -348,7 +353,6 @@ function switchView(viewName) {
     
     localStorage.setItem('lastView', viewName);
 }
-
 // ==================== EMPLOYEE MANAGEMENT ====================
 function loadEmployees() {
     if (!window.database) {
@@ -425,7 +429,7 @@ function renderEmployeeCards() {
     if (frontDeskEmployees.length > 0) {
         const title = currentLanguage === 'ja' ? 'フロント/サービス' : '前台/服务';
         html += `
-            <div class="position-group">
+            <div class="position-group" data-position="前台/服务区" data-drop-label="${currentLanguage === 'ja' ? 'フロントに移動' : '移动到前台'}">
                 <h3 class="position-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--info);">
                     <i class="fas fa-door-open"></i> ${title}
                     <span class="position-count" style="font-size: 12px; background: var(--info-light); color: var(--info); padding: 2px 8px; border-radius: 12px;">${frontDeskEmployees.length}</span>
@@ -440,7 +444,7 @@ function renderEmployeeCards() {
     if (kitchenEmployees.length > 0) {
         const title = currentLanguage === 'ja' ? '厨房' : '厨房';
         html += `
-            <div class="position-group">
+            <div class="position-group" data-position="厨房区" data-drop-label="${currentLanguage === 'ja' ? '厨房に移動' : '移动到厨房'}">
                 <h3 class="position-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--warning);">
                     <i class="fas fa-utensils"></i> ${title}
                     <span class="position-count" style="font-size: 12px; background: var(--warning-light); color: var(--warning); padding: 2px 8px; border-radius: 12px;">${kitchenEmployees.length}</span>
@@ -455,7 +459,7 @@ function renderEmployeeCards() {
     if (rakkaEmployees.length > 0) {
         const title = currentLanguage === 'ja' ? 'ラッカ' : '拉客';
         html += `
-            <div class="position-group">
+            <div class="position-group" data-position="拉客" data-drop-label="${currentLanguage === 'ja' ? 'ラッカに移動' : '移动到拉客'}">
                 <h3 class="position-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--secondary);">
                     <i class="fas fa-handshake"></i> ${title}
                     <span class="position-count" style="font-size: 12px; background: var(--secondary-light); color: var(--secondary); padding: 2px 8px; border-radius: 12px;">${rakkaEmployees.length}</span>
@@ -468,6 +472,7 @@ function renderEmployeeCards() {
     }
     
     container.innerHTML = html;
+    refreshDragDrop();
 }
 
 function getDayHeadcount(dateString) {
@@ -544,7 +549,7 @@ function generateEmployeeCard(employee) {
     }
     
     return `
-        <div class="employee-card">
+        <div class="employee-card" draggable="true" data-employee-id="${employee.id}">
             <div class="employee-card-top" onclick="showEmployeeDetail('${employee.id}')">
                 <div class="employee-avatar">
                     ${employee.name.charAt(0)}
@@ -683,8 +688,8 @@ function showEmployeeWeekSchedule(employeeId) {
             ` : `
                 <div style="font-size: 11px; margin-top: 4px; font-weight: 600; color: var(--success);">
                     ${schedule.startTime.substring(0, 5)}-${schedule.endTime.substring(0, 5)}
-                    ${getShiftTypeLabel(schedule.startTime) ? ` (${getShiftTypeLabel(schedule.startTime)})` : ''}
-                    ${getStatusLabel(schedule.status || 'present')}
+                    ${getShiftTypeLabel(schedule.startTime) ? ` <span style="color: ${getShiftType(schedule.startTime) === '早班' ? '#1d4ed8' : '#b45309'}; font-weight:700;">${getShiftTypeLabel(schedule.startTime)}</span>` : ''}
+                    <span style="color: ${(schedule.status || 'present') === 'early_leave' ? '#b91c1c' : '#065f46'}; font-weight:700; margin-left:4px;">${getStatusLabel(schedule.status || 'present')}</span>
                 </div>
             `;
         }
@@ -885,7 +890,6 @@ function updateRestDaysEmployeeSelect() {
         select.appendChild(option);
     });
 }
-
 // ==================== SCHEDULE MANAGEMENT ====================
 function loadSchedules() {
     if (!window.database) {
@@ -939,9 +943,11 @@ function setQuickTimePreset(start, end) {
     if (endInput) endInput.value = end;
     
     const hours = calculateShiftHours(start, end);
+    const shiftType = getShiftType(start);
+    const shiftLabel = shiftType === '早班' ? (currentLanguage === 'ja' ? '早班' : '早班') : (currentLanguage === 'ja' ? '晚班' : '晚班');
     const message = currentLanguage === 'ja' 
-        ? `時間設定: ${start} - ${end} (${hours}時間)`
-        : `时间设置: ${start} - ${end} (${hours}小时)`;
+        ? `${shiftLabel}設定: ${start} - ${end} (${hours}時間)`
+        : `${shiftLabel}设置: ${start} - ${end} (${hours}小时)`;
     showMessage(message, 'info');
 }
 
@@ -1443,7 +1449,6 @@ function applyRestDays() {
         showMessage((currentLanguage === 'ja' ? '設定失敗: ' : '设置失败: ') + error.message, 'error');
     });
 }
-
 // ==================== WEEKLY VIEW ====================
 function buildWeeklyRowHtml(employee, days, schedulesByEmployee) {
     const employeeSchedules = schedulesByEmployee[employee.id] || {};
@@ -1461,10 +1466,10 @@ function buildWeeklyRowHtml(employee, days, schedulesByEmployee) {
     return `
         <div class="week-row">
             <div class="week-cell">
-                <div style="font-weight: 700; font-size: 0.8rem; color: var(--dark); margin-bottom: 2px;">${employee.name}</div>
-                <div style="font-size: 0.7rem; color: var(--gray-500); margin-bottom: 4px;">${positionDisplay}</div>
-                <div style="font-size: 0.65rem; color: var(--primary); font-weight: 600;">
-                    <i class="fas fa-clock" style="font-size: 0.6rem; margin-right: 2px;"></i>
+                <div style="font-weight: 700; font-size: 0.85rem; color: var(--dark); margin-bottom: 3px;">${employee.name}</div>
+                <div style="font-size: 0.75rem; color: var(--gray-500); margin-bottom: 4px;">${positionDisplay}</div>
+                <div class="week-cell-hours" style="font-size: 0.7rem; color: var(--primary); font-weight: 600;">
+                    <i class="fas fa-clock" style="font-size: 0.65rem; margin-right: 3px;"></i>
                     ${weeklyHours}h
                 </div>
             </div>
@@ -1480,13 +1485,15 @@ function buildWeeklyRowHtml(employee, days, schedulesByEmployee) {
                     } else {
                         scheduleClass = 'work';
                         const shiftType = getShiftTypeLabel(schedule.startTime);
+                        const shiftClass = getShiftTypeClass(schedule.startTime);
                         const statusLabel = getStatusLabel(schedule.status || 'present');
+                        const statusClass = getStatusClass(schedule.status || 'present');
                         const timeStr = `${schedule.startTime ? schedule.startTime.substring(0,5) : ''}-${schedule.endTime ? schedule.endTime.substring(0,5) : ''}`;
                         scheduleText = `
                             <div class="compact-time">
-                                <span>${timeStr}</span>
-                                ${shiftType ? `<span class="shift-badge">${shiftType}</span>` : ''}
-                                <span class="status-badge ${schedule.status === 'early_leave' ? 'early-leave' : ''}">${statusLabel}</span>
+                                <span style="font-weight:700; font-size:0.9rem;">${timeStr}</span>
+                                ${shiftType ? `<span class="shift-badge ${shiftClass}">${shiftType}</span>` : ''}
+                                <span class="status-badge ${statusClass}">${statusLabel}</span>
                             </div>
                         `;
                     }
@@ -2007,7 +2014,6 @@ function refreshData() {
         showMessage(currentLanguage === 'ja' ? '更新エラー: ' : '刷新错误: ' + error.message, 'error');
     });
 }
-
 // ==================== COPY TEXT FUNCTION ====================
 function copyScheduleAsText(employeeIdParam) {
     const employeeId = employeeIdParam || selectedEmployee;
@@ -2054,8 +2060,8 @@ function copyScheduleAsText(employeeIdParam) {
                 const shiftType = getShiftTypeLabel(schedule.startTime);
                 const statusLabel = getStatusLabel(schedule.status || 'present');
                 scheduleText = `🕐 ${schedule.startTime ? schedule.startTime.substring(0,5) : ''}-${schedule.endTime ? schedule.endTime.substring(0,5) : ''}`;
-                if (shiftType) scheduleText += ` ${shiftType}`;
-                scheduleText += ` ${statusLabel}`;
+                if (shiftType) scheduleText += ` [${shiftType}]`;
+                if (statusLabel) scheduleText += ` (${statusLabel})`;
             }
         } else {
             scheduleText = '📭 ' + (currentLanguage === 'ja' ? 'なし' : '无');
@@ -2547,9 +2553,11 @@ function createTodayItem(schedule) {
     } else {
         const statusLabel = getStatusLabel(schedule.status || 'present');
         const shiftType = getShiftTypeLabel(schedule.startTime);
+        const shiftClass = getShiftTypeClass(schedule.startTime);
+        const statusClassText = getStatusClass(schedule.status || 'present');
         statusText = `${schedule.startTime ? schedule.startTime.substring(0, 5) : ''} - ${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}`;
-        if (shiftType) statusText += ` (${shiftType})`;
-        if (statusLabel) statusText += ` ${statusLabel}`;
+        if (shiftType) statusText += ` <span style="color:${shiftClass === 'morning' ? '#1d4ed8' : '#b45309'};font-weight:700;">${shiftType}</span>`;
+        if (statusLabel) statusText += ` <span style="color:${statusClassText === 'early-leave' ? '#b91c1c' : '#065f46'};font-weight:700;">${statusLabel}</span>`;
         statusClass = 'work';
     }
     
@@ -2689,7 +2697,7 @@ function updateEmployeePosition() {
     if (!employee) return;
 
     if (newPosition === employee.position) {
-        showMessage(currentLanguage === 'ja' ? '変更はありません' : '未作更改', 'info');
+        showMessage('Same position', 'info');
         closeModal('editPositionModal');
         return;
     }
@@ -2771,6 +2779,14 @@ function getShiftTypeLabel(startTime, lang = currentLanguage) {
     return type;
 }
 
+function getShiftTypeClass(startTime) {
+    const type = getShiftType(startTime);
+    if (!type) return '';
+    if (type === '早班') return 'morning';
+    if (type === '晚班') return 'evening';
+    return 'night';
+}
+
 function getStatusLabel(status, lang = currentLanguage) {
     const labels = {
         'present': { ja: '出勤', zh: '出勤' },
@@ -2780,6 +2796,17 @@ function getStatusLabel(status, lang = currentLanguage) {
     };
     const def = { ja: '出勤', zh: '出勤' };
     return (labels[status] || def)[lang] || def.ja;
+}
+
+function getStatusClass(status) {
+    if (!status) return 'present';
+    const map = {
+        'present': 'present',
+        'early_leave': 'early-leave',
+        'holiday': 'holiday',
+        'absent': 'absent'
+    };
+    return map[status] || 'present';
 }
 
 // ---------- 4. Copy lịch của 1 nhân viên sang tuần sau ----------
@@ -2985,6 +3012,191 @@ function applyEarlyLeave() {
 
     toggleScheduleStatus(employeeId, date);
     closeModal('earlyLeaveModal');
+}
+
+// ==================== DRAG & DROP ====================
+let dragData = null;
+let dropTargetElement = null;
+
+function initDragDrop() {
+    document.addEventListener('dragstart', function(e) {
+        const card = e.target.closest('.employee-card');
+        if (!card) return;
+        
+        const employeeId = card.dataset.employeeId;
+        const employee = employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        dragData = {
+            employeeId: employeeId,
+            position: employee.position,
+            name: employee.name
+        };
+        
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', employeeId);
+        
+        card.style.opacity = '0.5';
+        card.style.transform = 'scale(0.95)';
+        
+        const dragHint = document.createElement('div');
+        dragHint.id = 'dragHint';
+        dragHint.style.cssText = `
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 9999;
+            box-shadow: var(--shadow-lg);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+        dragHint.textContent = currentLanguage === 'ja' 
+            ? `👆 ${employee.name} をドラッグ中... 新しい職種にドロップ`
+            : `👆 正在拖动 ${employee.name}... 拖到新职位释放`;
+        document.body.appendChild(dragHint);
+        
+        setTimeout(() => {
+            const hint = document.getElementById('dragHint');
+            if (hint) hint.style.opacity = '1';
+        }, 50);
+    });
+    
+    document.addEventListener('dragend', function(e) {
+        const card = e.target.closest('.employee-card');
+        if (card) {
+            card.style.opacity = '1';
+            card.style.transform = 'scale(1)';
+        }
+        
+        const hint = document.getElementById('dragHint');
+        if (hint) hint.remove();
+        
+        document.querySelectorAll('.position-drop-zone').forEach(el => {
+            el.classList.remove('drag-over', 'position-drop-zone');
+        });
+        
+        dragData = null;
+        dropTargetElement = null;
+    });
+    
+    document.addEventListener('dragover', function(e) {
+        const positionGroup = e.target.closest('.position-group');
+        if (!positionGroup || !dragData) return;
+        
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        
+        document.querySelectorAll('.position-group').forEach(g => {
+            g.classList.remove('drag-over');
+        });
+        positionGroup.classList.add('drag-over');
+        dropTargetElement = positionGroup;
+    });
+    
+    document.addEventListener('dragleave', function(e) {
+        const positionGroup = e.target.closest('.position-group');
+        if (positionGroup) {
+            positionGroup.classList.remove('drag-over');
+        }
+    });
+    
+    document.addEventListener('drop', function(e) {
+        const positionGroup = e.target.closest('.position-group');
+        if (!positionGroup || !dragData) return;
+        
+        e.preventDefault();
+        
+        const newPosition = positionGroup.dataset.position;
+        const employeeId = dragData.employeeId;
+        const oldPosition = dragData.position;
+        
+        document.querySelectorAll('.position-group').forEach(g => {
+            g.classList.remove('drag-over');
+        });
+        
+        const hint = document.getElementById('dragHint');
+        if (hint) hint.remove();
+        
+        if (newPosition === oldPosition) {
+            showMessage('Same position', 'info');
+            dragData = null;
+            return;
+        }
+        
+        const confirmMsg = currentLanguage === 'ja'
+            ? `${dragData.name} を ${getPositionDisplayName(oldPosition)} から ${getPositionDisplayName(newPosition)} に移動しますか？`
+            : `确定将 ${dragData.name} 从 ${getPositionDisplayName(oldPosition)} 移动到 ${getPositionDisplayName(newPosition)} 吗？`;
+        
+        if (!confirm(confirmMsg)) {
+            dragData = null;
+            return;
+        }
+        
+        window.database.ref(`employees/${employeeId}/position`).set(newPosition)
+            .then(() => {
+                const msg = currentLanguage === 'ja'
+                    ? `${dragData.name} を ${getPositionDisplayName(newPosition)} に移動しました`
+                    : `已将 ${dragData.name} 移动到 ${getPositionDisplayName(newPosition)}`;
+                showMessage(msg, 'success');
+                renderEmployeeCards();
+                renderWeeklySchedule();
+                
+                if (selectedEmployee === employeeId) {
+                    showEmployeeDetail(employeeId);
+                }
+            })
+            .catch(error => {
+                showMessage((currentLanguage === 'ja' ? '移動失敗: ' : '移动失败: ') + error.message, 'error');
+            });
+        
+        dragData = null;
+    });
+}
+
+function getPositionDisplayName(position) {
+    if (position === '厨房区') {
+        return currentLanguage === 'ja' ? '厨房' : '厨房';
+    } else if (position === '拉客') {
+        return currentLanguage === 'ja' ? 'ラッカ' : '拉客';
+    } else {
+        return currentLanguage === 'ja' ? 'フロント' : '前台';
+    }
+}
+
+function refreshDragDrop() {
+    document.querySelectorAll('.employee-card').forEach(card => {
+        const nameEl = card.querySelector('.employee-name');
+        if (nameEl) {
+            const employee = employees.find(emp => emp.name === nameEl.textContent.trim());
+            if (employee) {
+                card.dataset.employeeId = employee.id;
+            }
+        }
+        card.draggable = true;
+        card.style.cursor = 'grab';
+    });
+    
+    document.querySelectorAll('.position-group').forEach(group => {
+        const title = group.querySelector('.position-title');
+        if (title) {
+            const text = title.textContent.trim();
+            if (text.includes('フロント') || text.includes('前台')) {
+                group.dataset.position = '前台/服务区';
+            } else if (text.includes('厨房')) {
+                group.dataset.position = '厨房区';
+            } else if (text.includes('ラッカ') || text.includes('拉客')) {
+                group.dataset.position = '拉客';
+            }
+        }
+    });
 }
 
 // ==================== ERROR HANDLING ====================
