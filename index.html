@@ -7,22 +7,15 @@
     <meta name="mobile-web-app-capable" content="yes">
     <title>鍛治町酒場 神田店 - 勤務表管理</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Firebase (tự host cục bộ, không phụ thuộc CDN ngoài) -->
     <script src="firebase-app-compat.js"></script>
     <script src="firebase-database-compat.js"></script>
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Apple Touch Icon -->
     <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
     <style>
-        /* Loading screen */
         #loadingScreen {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             flex-direction: column;
@@ -31,171 +24,113 @@
             z-index: 9999;
             color: white;
         }
-        
         .loading-spinner {
-            width: 50px;
-            height: 50px;
+            width: 50px; height: 50px;
             border: 4px solid rgba(255,255,255,0.3);
             border-radius: 50%;
             border-top-color: white;
             animation: spin 1s ease-in-out infinite;
             margin-bottom: 20px;
         }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Hide dark mode for iPhone */
+        @keyframes spin { to { transform: rotate(360deg); } }
         @media (prefers-color-scheme: dark) {
-            body {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-            }
-            
-            .app {
-                background: white !important;
-                color: #333 !important;
-            }
+            body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; }
+            .app { background: white !important; color: #333 !important; }
         }
     </style>
 </head>
 <body>
-    <!-- Loading Screen -->
     <div id="loadingScreen">
         <div class="loading-spinner"></div>
         <h2>アプリケーションを読み込み中...</h2>
-        <p style="margin-top: 10px; opacity: 0.8;">鍛治町酒場 神田店 勤務表</p>
+        <p style="margin-top:10px; opacity:0.8;">鍛治町酒場 神田店 勤務表</p>
     </div>
 
-    <!-- Main App -->
     <div class="app">
-        <!-- Header -->
+        <!-- Header gọn nhẹ -->
         <header class="header">
             <div class="header-content">
-                <h1><i class="fas fa-calendar-alt"></i> 鍛治町酒場 神田店</h1>
+                <h1><i class="fas fa-calendar-alt"></i> 鍛治町酒場</h1>
                 <div class="header-right">
-                    <div class="language-switcher no-print">
-                        <button class="lang-btn" id="languageSwitch">
-                            <i class="fas fa-language"></i>
-                            <span id="currentLanguage">日本語</span>
-                        </button>
-                    </div>
-                    <div class="connection-status" id="connectionStatus">
-                        <i class="fas fa-wifi"></i>
-                        <span>接続済み</span>
-                    </div>
+                    <button class="lang-btn" id="languageSwitch">
+                        <i class="fas fa-language"></i>
+                        <span id="currentLanguage">日本語</span>
+                    </button>
                 </div>
             </div>
             <div class="current-date" id="currentDate"></div>
         </header>
 
-        <!-- Main Navigation -->
+        <!-- Navigation -->
         <nav class="main-nav no-print">
             <button class="nav-btn active" data-view="employees" onclick="switchView('employees')">
                 <i class="fas fa-users"></i>
-                <span data-lang="ja">スタッフ</span>
-                <span data-lang="zh" style="display:none">员工</span>
+                <span>スタッフ</span>
             </button>
             <button class="nav-btn" data-view="weekly" onclick="switchView('weekly')">
                 <i class="fas fa-calendar-week"></i>
-                <span data-lang="ja">今週</span>
-                <span data-lang="zh" style="display:none">本周</span>
+                <span>今週</span>
             </button>
             <button class="nav-btn" data-view="schedule" onclick="switchView('schedule')">
                 <i class="fas fa-plus-circle"></i>
-                <span data-lang="ja">シフト登録</span>
-                <span data-lang="zh" style="display:none">排班</span>
+                <span>シフト</span>
             </button>
         </nav>
 
-        <!-- Main Content -->
         <main class="main-content">
             <!-- EMPLOYEES VIEW -->
             <div class="view active" id="employeesView">
                 <div class="view-header">
-                    <h2><i class="fas fa-users"></i> <span data-lang="ja">スタッフ管理</span><span data-lang="zh" style="display:none">员工管理</span></h2>
+                    <h2><i class="fas fa-users"></i> スタッフ</h2>
                     <div class="view-actions">
-                        <button class="btn-icon" onclick="showAddEmployee()" title="スタッフ追加">
-                            <i class="fas fa-user-plus"></i>
-                        </button>
-                        <button class="btn-icon" onclick="refreshData()" title="更新">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
+                        <button class="btn-icon" onclick="showAddEmployee()"><i class="fas fa-user-plus"></i></button>
+                        <button class="btn-icon" onclick="refreshData()"><i class="fas fa-sync-alt"></i></button>
                     </div>
                 </div>
-
                 <div class="search-box">
                     <i class="fas fa-search"></i>
                     <input type="text" id="employeeSearch" placeholder="スタッフを検索..." oninput="searchEmployees()">
                 </div>
-
                 <div class="position-filter">
-                    <button class="filter-btn active" data-position="all" onclick="filterEmployees('all')">
-                        <span data-lang="ja">全て</span>
-                        <span data-lang="zh" style="display:none">全部</span>
-                    </button>
-                    <button class="filter-btn" data-position="前台/服务区" onclick="filterEmployees('前台/服务区')">
-                        <span data-lang="ja">フロント</span>
-                        <span data-lang="zh" style="display:none">前台</span>
-                    </button>
-                    <button class="filter-btn" data-position="厨房区" onclick="filterEmployees('厨房区')">
-                        <span data-lang="ja">厨房</span>
-                        <span data-lang="zh" style="display:none">厨房</span>
-                    </button>
-                    <button class="filter-btn" data-position="拉客" onclick="filterEmployees('拉客')">
-                        <span data-lang="ja">ラッカ</span>
-                        <span data-lang="zh" style="display:none">拉客</span>
-                    </button>
+                    <button class="filter-btn active" data-position="all" onclick="filterEmployees('all')">全て</button>
+                    <button class="filter-btn" data-position="前台/服务区" onclick="filterEmployees('前台/服务区')">フロント</button>
+                    <button class="filter-btn" data-position="厨房区" onclick="filterEmployees('厨房区')">厨房</button>
+                    <button class="filter-btn" data-position="拉客" onclick="filterEmployees('拉客')">ラッカ</button>
                 </div>
-
-                <div class="employee-cards" id="employeeCards">
-                    <!-- スタッフカード -->
-                </div>
+                <div class="employee-cards" id="employeeCards"></div>
             </div>
 
             <!-- WEEKLY SCHEDULE VIEW -->
             <div class="view" id="weeklyView">
                 <div class="view-header">
-                    <h2><i class="fas fa-calendar-week"></i> <span data-lang="ja">今週のシフト</span><span data-lang="zh" style="display:none">本周排班</span></h2>
+                    <h2><i class="fas fa-calendar-week"></i> 今週のシフト</h2>
                     <div class="week-nav">
-                        <button class="btn-icon" onclick="changeWeek(-1)" title="前週">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
+                        <button class="btn-icon" onclick="changeWeek(-1)"><i class="fas fa-chevron-left"></i></button>
                         <span id="weekRange"></span>
-                        <button class="btn-icon" onclick="changeWeek(1)" title="次週">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
+                        <button class="btn-icon" onclick="changeWeek(1)"><i class="fas fa-chevron-right"></i></button>
                     </div>
                 </div>
-
                 <div class="weekly-schedule-container">
-                    <div class="weekly-schedule" id="weeklySchedule">
-                        <!-- 週間シフト表 -->
-                    </div>
+                    <div class="weekly-schedule" id="weeklySchedule"></div>
                 </div>
             </div>
 
             <!-- SCHEDULE VIEW -->
             <div class="view" id="scheduleView">
                 <div class="view-header">
-                    <h2><i class="fas fa-plus-circle"></i> <span data-lang="ja">シフト登録</span><span data-lang="zh" style="display:none">添加排班</span></h2>
+                    <h2><i class="fas fa-plus-circle"></i> シフト登録</h2>
                 </div>
-
                 <div class="schedule-form">
                     <div class="form-group">
-                        <label><i class="fas fa-user"></i> <span data-lang="ja">スタッフ選択</span><span data-lang="zh" style="display:none">选择员工</span></label>
-                        <select id="scheduleEmployee" class="select-input">
-                            <option value=""><span data-lang="ja">スタッフを選択</span><span data-lang="zh" style="display:none">选择员工</span></option>
-                        </select>
+                        <label>スタッフ</label>
+                        <select id="scheduleEmployee" class="select-input"><option value="">選択</option></select>
                     </div>
-
                     <div class="form-group">
-                        <label><i class="fas fa-calendar"></i> <span data-lang="ja">日付</span><span data-lang="zh" style="display:none">日期</span></label>
+                        <label>日付</label>
                         <input type="date" id="scheduleDate" class="input-field">
                     </div>
-
                     <div class="form-group">
-                        <label><i class="fas fa-clock"></i> <span data-lang="ja">勤務時間</span><span data-lang="zh" style="display:none">工作时间</span></label>
+                        <label>勤務時間</label>
                         <div class="time-range-group">
                             <div class="time-range-inputs">
                                 <input type="time" id="scheduleStart" class="input-field" value="12:00">
@@ -203,50 +138,22 @@
                                 <input type="time" id="scheduleEnd" class="input-field" value="00:00">
                             </div>
                             <div class="quick-time-buttons">
-                                <button type="button" class="time-preset" onclick="setTimePreset('12:00', '00:00')">
-                                    <span data-lang="ja">全日</span>
-                                    <span data-lang="zh" style="display:none">全天</span>
-                                </button>
-                                <button type="button" class="time-preset" onclick="setTimePreset('18:00', '00:00')">
-                                    <span data-lang="ja">夜勤</span>
-                                    <span data-lang="zh" style="display:none">晚班</span>
-                                </button>
+                                <button type="button" class="time-preset" onclick="setTimePreset('12:00','00:00')">全日</button>
+                                <button type="button" class="time-preset" onclick="setTimePreset('18:00','00:00')">夜勤</button>
                             </div>
                         </div>
                     </div>
-
                     <div class="form-group">
-                        <label><i class="fas fa-tag"></i> <span data-lang="ja">種類</span><span data-lang="zh" style="display:none">类型</span></label>
+                        <label>種類</label>
                         <div class="type-selector" id="scheduleTypeSelector">
-                            <button type="button" class="type-btn active" data-type="work" onclick="selectScheduleType('work')">
-                                <i class="fas fa-briefcase"></i>
-                                <span data-lang="ja">勤務</span>
-                                <span data-lang="zh" style="display:none">工作</span>
-                            </button>
-                            <button type="button" class="type-btn" data-type="rest" onclick="selectScheduleType('rest')">
-                                <i class="fas fa-umbrella-beach"></i>
-                                <span data-lang="ja">休み</span>
-                                <span data-lang="zh" style="display:none">休息</span>
-                            </button>
+                            <button type="button" class="type-btn active" data-type="work" onclick="selectScheduleType('work')"><i class="fas fa-briefcase"></i> 勤務</button>
+                            <button type="button" class="type-btn" data-type="rest" onclick="selectScheduleType('rest')"><i class="fas fa-umbrella-beach"></i> 休み</button>
                         </div>
                     </div>
-
                     <div class="action-buttons">
-                        <button type="button" class="btn-primary" onclick="addSchedule()">
-                            <i class="fas fa-check"></i> 
-                            <span data-lang="ja">登録</span>
-                            <span data-lang="zh" style="display:none">添加</span>
-                        </button>
-                        <button type="button" class="btn-secondary" onclick="showQuickWeekModal()">
-                            <i class="fas fa-calendar-week"></i> 
-                            <span data-lang="ja">週一括</span>
-                            <span data-lang="zh" style="display:none">整周排班</span>
-                        </button>
-                        <button type="button" class="btn-secondary btn-rest-day" onclick="showSetRestDaysModal()">
-                            <i class="fas fa-umbrella-beach"></i> 
-                            <span data-lang="ja">休日設定</span>
-                            <span data-lang="zh" style="display:none">设置休息日</span>
-                        </button>
+                        <button type="button" class="btn-primary" onclick="addSchedule()"><i class="fas fa-check"></i> 登録</button>
+                        <button type="button" class="btn-secondary" onclick="showQuickWeekModal()"><i class="fas fa-calendar-week"></i> 週一括</button>
+                        <button type="button" class="btn-secondary btn-rest-day" onclick="showSetRestDaysModal()"><i class="fas fa-umbrella-beach"></i> 休日設定</button>
                     </div>
                 </div>
             </div>
@@ -254,101 +161,36 @@
 
         <!-- Quick Actions Bar -->
         <div class="quick-actions-bar no-print">
-            <button type="button" class="quick-action" onclick="showTodaySchedule()">
-                <i class="fas fa-calendar-day"></i>
-                <span data-lang="ja">今日</span>
-                <span data-lang="zh" style="display:none">今天</span>
-            </button>
-            <button type="button" class="quick-action" onclick="showStats()">
-                <i class="fas fa-chart-bar"></i>
-                <span data-lang="ja">統計</span>
-                <span data-lang="zh" style="display:none">统计</span>
-            </button>
-            <button type="button" class="quick-action" onclick="shareWeeklySchedule()">
-                <i class="fas fa-share-alt"></i>
-                <span data-lang="ja">共有</span>
-                <span data-lang="zh" style="display:none">分享</span>
-            </button>
-            <button type="button" class="quick-action" onclick="copyAllSchedulesToNextWeek()">
-                <i class="fas fa-copy"></i>
-                <span data-lang="ja">全コピー</span>
-                <span data-lang="zh" style="display:none">全部复制</span>
-            </button>
+            <button class="quick-action" onclick="showTodaySchedule()"><i class="fas fa-calendar-day"></i><span>今日</span></button>
+            <button class="quick-action" onclick="showStats()"><i class="fas fa-chart-bar"></i><span>統計</span></button>
+            <button class="quick-action" onclick="shareWeeklySchedule()"><i class="fas fa-share-alt"></i><span>共有</span></button>
+            <button class="quick-action" onclick="copyAllSchedulesToNextWeek()"><i class="fas fa-copy"></i><span>全コピー</span></button>
         </div>
     </div>
 
-    <!-- MODALS -->
-    <!-- Employee Detail Modal -->
+    <!-- MODALS (giữ nguyên nội dung, đã có trong bản trước) -->
+    <!-- Employee Modal -->
     <div class="modal" id="employeeModal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modalEmployeeName"></h3>
-                <button type="button" class="modal-close" onclick="closeModal('employeeModal')">
-                    <i class="fas fa-times"></i>
-                </button>
+                <button class="modal-close" onclick="closeModal('employeeModal')"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
                 <div class="employee-detail-info">
                     <div class="employee-basic">
-                        <div class="info-row">
-                            <span class="label" data-lang="ja">職種</span>
-                            <span class="label" data-lang="zh" style="display:none">职位</span>
-                            <span class="value" id="modalEmployeePosition"></span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label" data-lang="ja">今週時間</span>
-                            <span class="label" data-lang="zh" style="display:none">本周工时</span>
-                            <span class="value" id="modalWeekHours">0時間</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label" data-lang="ja">今月時間</span>
-                            <span class="label" data-lang="zh" style="display:none">本月工时</span>
-                            <span class="value" id="modalMonthHours">0時間</span>
-                        </div>
+                        <div class="info-row"><span class="label">職種</span><span class="value" id="modalEmployeePosition"></span></div>
+                        <div class="info-row"><span class="label">今週時間</span><span class="value" id="modalWeekHours">0時間</span></div>
+                        <div class="info-row"><span class="label">今月時間</span><span class="value" id="modalMonthHours">0時間</span></div>
                     </div>
-
                     <div class="week-summary">
-                        <h4><i class="fas fa-calendar-week"></i> <span data-lang="ja">今週のシフト</span><span data-lang="zh" style="display:none">本周排班</span></h4>
-                        <div class="week-days" id="employeeWeekDays">
-                            <!-- 週間シフト表示 -->
-                        </div>
+                        <h4><i class="fas fa-calendar-week"></i> 今週のシフト</h4>
+                        <div class="week-days" id="employeeWeekDays"></div>
                     </div>
-
                     <div class="modal-actions">
-                        <div class="action-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
-                            <button type="button" class="btn-action" onclick="editEmployeePosition(selectedEmployee)">
-                                <i class="fas fa-user-edit"></i>
-                                <span data-lang="ja">職種変更</span>
-                                <span data-lang="zh" style="display:none">更改职位</span>
-                            </button>
-                            <button type="button" class="btn-action" onclick="copyScheduleToNextWeek(selectedEmployee)">
-                                <i class="fas fa-copy"></i>
-                                <span data-lang="ja">来週コピー</span>
-                                <span data-lang="zh" style="display:none">复制到下周</span>
-                            </button>
-                        </div>
-                        <div class="action-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%;">
-                            <button type="button" class="btn-action" onclick="editEmployeeSchedule()">
-                                <i class="fas fa-edit"></i>
-                                <span data-lang="ja">編集</span>
-                                <span data-lang="zh" style="display:none">编辑</span>
-                            </button>
-                            <button type="button" class="btn-action" onclick="copyScheduleAsText(selectedEmployee)">
-                                <i class="fas fa-copy"></i>
-                                <span data-lang="ja">コピー</span>
-                                <span data-lang="zh" style="display:none">复制</span>
-                            </button>
-                            <button type="button" class="btn-action" onclick="openEarlyLeaveModal(selectedEmployee)">
-                                <i class="fas fa-clock"></i>
-                                <span data-lang="ja">早退</span>
-                                <span data-lang="zh" style="display:none">早退</span>
-                            </button>
-                        </div>
-                        <button type="button" class="btn-action btn-danger" onclick="deleteCurrentEmployee()">
-                            <i class="fas fa-trash"></i>
-                            <span data-lang="ja">削除</span>
-                            <span data-lang="zh" style="display:none">删除</span>
-                        </button>
+                        <div class="action-row"><button class="btn-action" onclick="editEmployeePosition(selectedEmployee)"><i class="fas fa-user-edit"></i> 職種変更</button><button class="btn-action" onclick="copyScheduleToNextWeek(selectedEmployee)"><i class="fas fa-copy"></i> 来週コピー</button></div>
+                        <div class="action-row"><button class="btn-action" onclick="editEmployeeSchedule()"><i class="fas fa-edit"></i> 編集</button><button class="btn-action" onclick="copyScheduleAsText(selectedEmployee)"><i class="fas fa-copy"></i> コピー</button><button class="btn-action" onclick="openEarlyLeaveModal(selectedEmployee)"><i class="fas fa-clock"></i> 早退</button></div>
+                        <button class="btn-action btn-danger" onclick="deleteCurrentEmployee()"><i class="fas fa-trash"></i> 削除</button>
                     </div>
                 </div>
             </div>
@@ -358,110 +200,53 @@
     <!-- Add Employee Modal -->
     <div class="modal" id="addEmployeeModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-user-plus"></i> <span data-lang="ja">スタッフ追加</span><span data-lang="zh" style="display:none">添加员工</span></h3>
-                <button type="button" class="modal-close" onclick="closeModal('addEmployeeModal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
+            <div class="modal-header"><h3><i class="fas fa-user-plus"></i> スタッフ追加</h3><button class="modal-close" onclick="closeModal('addEmployeeModal')"><i class="fas fa-times"></i></button></div>
             <div class="modal-body">
+                <div class="form-group"><input type="text" id="newEmployeeName" class="input-field" placeholder="名前を入力" autofocus></div>
                 <div class="form-group">
-                    <input type="text" id="newEmployeeName" class="input-field" placeholder="名前を入力" autofocus>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-briefcase"></i> <span data-lang="ja">職種</span><span data-lang="zh" style="display:none">职位</span></label>
+                    <label>職種</label>
                     <div class="position-select">
-                        <button type="button" class="position-option active" data-position="前台/服务区" onclick="selectPosition(this)">
-                            <i class="fas fa-door-open"></i>
-                            <span data-lang="ja">フロント</span>
-                            <span data-lang="zh" style="display:none">前台</span>
-                        </button>
-                        <button type="button" class="position-option" data-position="厨房区" onclick="selectPosition(this)">
-                            <i class="fas fa-utensils"></i>
-                            <span data-lang="ja">厨房</span>
-                            <span data-lang="zh" style="display:none">厨房</span>
-                        </button>
-                        <button type="button" class="position-option" data-position="拉客" onclick="selectPosition(this)">
-                            <i class="fas fa-handshake"></i>
-                            <span data-lang="ja">ラッカ</span>
-                            <span data-lang="zh" style="display:none">拉客</span>
-                        </button>
+                        <button type="button" class="position-option active" data-position="前台/服务区" onclick="selectPosition(this)"><i class="fas fa-door-open"></i> フロント</button>
+                        <button type="button" class="position-option" data-position="厨房区" onclick="selectPosition(this)"><i class="fas fa-utensils"></i> 厨房</button>
+                        <button type="button" class="position-option" data-position="拉客" onclick="selectPosition(this)"><i class="fas fa-handshake"></i> ラッカ</button>
                     </div>
                 </div>
-                <button type="button" class="btn-primary full-width" onclick="addEmployee()">
-                    <i class="fas fa-plus"></i> 
-                    <span data-lang="ja">追加</span>
-                    <span data-lang="zh" style="display:none">添加</span>
-                </button>
+                <button class="btn-primary full-width" onclick="addEmployee()"><i class="fas fa-plus"></i> 追加</button>
             </div>
         </div>
     </div>
 
-    <!-- Quick Week Schedule Modal -->
+    <!-- Quick Week Modal -->
     <div class="modal" id="quickWeekModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-calendar-week"></i> <span data-lang="ja">週一括登録</span><span data-lang="zh" style="display:none">整周排班</span></h3>
-                <button type="button" class="modal-close" onclick="closeModal('quickWeekModal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
+            <div class="modal-header"><h3><i class="fas fa-calendar-week"></i> 週一括登録</h3><button class="modal-close" onclick="closeModal('quickWeekModal')"><i class="fas fa-times"></i></button></div>
             <div class="modal-body">
-                <div class="quick-week-options">
-                    <div class="form-group">
-                        <label><i class="fas fa-user"></i> <span data-lang="ja">スタッフ選択</span><span data-lang="zh" style="display:none">选择员工</span></label>
-                        <select id="quickWeekEmployee" class="select-input">
-                            <option value=""><span data-lang="ja">スタッフを選択</span><span data-lang="zh" style="display:none">选择员工</span></option>
-                        </select>
+                <div class="form-group">
+                    <label>スタッフ</label>
+                    <select id="quickWeekEmployee" class="select-input"><option value="">選択</option></select>
+                </div>
+                <div class="form-group">
+                    <label>勤務時間</label>
+                    <div class="time-group">
+                        <input type="time" id="quickWeekStart" class="input-field" value="08:00">
+                        <span class="time-separator">〜</span>
+                        <input type="time" id="quickWeekEnd" class="input-field" value="17:00">
                     </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-clock"></i> <span data-lang="ja">勤務時間</span><span data-lang="zh" style="display:none">工作时间</span></label>
-                        <div class="time-group">
-                            <input type="time" id="quickWeekStart" class="input-field" value="08:00">
-                            <span class="time-separator">〜</span>
-                            <input type="time" id="quickWeekEnd" class="input-field" value="17:00">
-                        </div>
-                        <div class="quick-time-buttons">
-                            <button type="button" class="time-preset morning" onclick="setQuickTimePreset('08:00', '17:00')">
-                                <i class="fas fa-sun" style="color: #f59e0b;"></i>
-                                <span data-lang="ja">早班</span>
-                                <span data-lang="zh" style="display:none">早班</span>
-                                <span style="font-size:0.65rem; color:var(--gray-500);">08:00-17:00</span>
-                            </button>
-                            <button type="button" class="time-preset evening" onclick="setQuickTimePreset('17:00', '00:00')">
-                                <i class="fas fa-moon" style="color: #1e40af;"></i>
-                                <span data-lang="ja">晚班</span>
-                                <span data-lang="zh" style="display:none">晚班</span>
-                                <span style="font-size:0.65rem; color:var(--gray-500);">17:00-00:00</span>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-calendar-check"></i> <span data-lang="ja">勤務日選択</span><span data-lang="zh" style="display:none">选择工作日</span></label>
-                        <div class="weekdays-selector" id="weekdaysSelector">
-                            <!-- 曜日選択 -->
-                        </div>
-                        <div class="quick-day-buttons">
-                            <button type="button" class="day-preset" onclick="setAllWeekdays()">
-                                <span data-lang="ja">全選択</span>
-                                <span data-lang="zh" style="display:none">全选</span>
-                            </button>
-                            <button type="button" class="day-preset" onclick="clearWeekdays()">
-                                <span data-lang="ja">解除</span>
-                                <span data-lang="zh" style="display:none">清除</span>
-                            </button>
-                        </div>
+                    <div class="quick-time-buttons">
+                        <button type="button" class="time-preset morning" onclick="setQuickTimePreset('08:00','17:00')"><i class="fas fa-sun"></i> 早班</button>
+                        <button type="button" class="time-preset evening" onclick="setQuickTimePreset('17:00','00:00')"><i class="fas fa-moon"></i> 晚班</button>
                     </div>
                 </div>
-                
+                <div class="form-group">
+                    <label>勤務日選択</label>
+                    <div class="weekdays-selector" id="weekdaysSelector"></div>
+                    <div class="quick-day-buttons">
+                        <button class="day-preset" onclick="setAllWeekdays()">全選択</button>
+                        <button class="day-preset" onclick="clearWeekdays()">解除</button>
+                    </div>
+                </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn-primary" onclick="applyQuickWeekSchedule()">
-                        <i class="fas fa-check"></i> 
-                        <span data-lang="ja">適用</span>
-                        <span data-lang="zh" style="display:none">应用</span>
-                    </button>
+                    <button class="btn-primary" onclick="applyQuickWeekSchedule()"><i class="fas fa-check"></i> 適用</button>
                 </div>
             </div>
         </div>
@@ -470,146 +255,68 @@
     <!-- Set Rest Days Modal -->
     <div class="modal" id="setRestDaysModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-umbrella-beach"></i> <span data-lang="ja">休日設定</span><span data-lang="zh" style="display:none">设置休息日</span></h3>
-                <button type="button" class="modal-close" onclick="closeModal('setRestDaysModal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
+            <div class="modal-header"><h3><i class="fas fa-umbrella-beach"></i> 休日設定</h3><button class="modal-close" onclick="closeModal('setRestDaysModal')"><i class="fas fa-times"></i></button></div>
             <div class="modal-body">
-                <div class="rest-days-options">
-                    <div class="form-group">
-                        <label><i class="fas fa-user"></i> <span data-lang="ja">スタッフ選択</span><span data-lang="zh" style="display:none">选择员工</span></label>
-                        <select id="restDaysEmployee" class="select-input">
-                            <option value=""><span data-lang="ja">スタッフを選択</span><span data-lang="zh" style="display:none">选择员工</span></option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-calendar-check"></i> <span data-lang="ja">休日選択</span><span data-lang="zh" style="display:none">选择休息日</span></label>
-                        <div class="weekdays-selector" id="restDaysSelector">
-                            <!-- 休日選択 -->
-                        </div>
-                        <div class="quick-day-buttons">
-                            <button type="button" class="day-preset" onclick="clearRestDays()">
-                                <span data-lang="ja">解除</span>
-                                <span data-lang="zh" style="display:none">清除</span>
-                            </button>
-                        </div>
+                <div class="form-group">
+                    <label>スタッフ</label>
+                    <select id="restDaysEmployee" class="select-input"><option value="">選択</option></select>
+                </div>
+                <div class="form-group">
+                    <label>休日選択</label>
+                    <div class="weekdays-selector" id="restDaysSelector"></div>
+                    <div class="quick-day-buttons">
+                        <button class="day-preset" onclick="clearRestDays()">解除</button>
                     </div>
                 </div>
-                
                 <div class="modal-actions">
-                    <button type="button" class="btn-primary" onclick="applyRestDays()">
-                        <i class="fas fa-umbrella-beach"></i> 
-                        <span data-lang="ja">適用</span>
-                        <span data-lang="zh" style="display:none">应用</span>
-                    </button>
+                    <button class="btn-primary" onclick="applyRestDays()"><i class="fas fa-umbrella-beach"></i> 適用</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Today's Schedule Modal -->
+    <!-- Today Modal -->
     <div class="modal" id="todayModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-calendar-day"></i> <span data-lang="ja">今日のシフト</span><span data-lang="zh" style="display:none">今日排班</span></h3>
-                <button type="button" class="modal-close" onclick="closeModal('todayModal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="today-list" id="todayList">
-                    <!-- 今日のシフトリスト -->
-                </div>
-            </div>
+            <div class="modal-header"><h3><i class="fas fa-calendar-day"></i> 今日のシフト</h3><button class="modal-close" onclick="closeModal('todayModal')"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body"><div class="today-list" id="todayList"></div></div>
         </div>
     </div>
 
     <!-- Stats Modal -->
     <div class="modal" id="statsModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-chart-bar"></i> <span data-lang="ja">勤務統計</span><span data-lang="zh" style="display:none">工时统计</span></h3>
-                <button type="button" class="modal-close" onclick="closeModal('statsModal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="stats-grid" id="statsGrid">
-                    <!-- 統計情報 -->
-                </div>
-            </div>
+            <div class="modal-header"><h3><i class="fas fa-chart-bar"></i> 勤務統計</h3><button class="modal-close" onclick="closeModal('statsModal')"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body"><div class="stats-grid" id="statsGrid"></div></div>
         </div>
     </div>
 
     <!-- Edit Schedule Modal -->
     <div class="modal" id="editModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-edit"></i> <span data-lang="ja">シフト編集</span><span data-lang="zh" style="display:none">编辑排班</span></h3>
-                <button type="button" class="modal-close" onclick="closeModal('editModal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div id="editScheduleContent">
-                    <!-- 編集内容 -->
-                </div>
-            </div>
+            <div class="modal-header"><h3><i class="fas fa-edit"></i> シフト編集</h3><button class="modal-close" onclick="closeModal('editModal')"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body"><div id="editScheduleContent"></div></div>
         </div>
     </div>
 
     <!-- Edit Position Modal -->
     <div class="modal" id="editPositionModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-user-edit"></i> <span data-lang="ja">職種変更</span><span data-lang="zh" style="display:none">更改职位</span></h3>
-                <button type="button" class="modal-close" onclick="closeModal('editPositionModal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
+            <div class="modal-header"><h3><i class="fas fa-user-edit"></i> 職種変更</h3><button class="modal-close" onclick="closeModal('editPositionModal')"><i class="fas fa-times"></i></button></div>
             <div class="modal-body">
-                <div style="margin-bottom: 20px;">
-                    <div style="font-weight: 700; font-size: 1.1rem; color: var(--dark);" id="editPositionName"></div>
-                    <div style="color: var(--gray-500); font-size: 0.9rem; margin-top: 4px;">
-                        <span data-lang="ja">現在の職種:</span>
-                        <span data-lang="zh" style="display:none">当前职位:</span>
-                        <span id="editPositionCurrent" style="font-weight: 700; color: var(--primary);"></span>
-                    </div>
-                </div>
+                <div style="margin-bottom:16px;"><div style="font-weight:700;font-size:1.1rem" id="editPositionName"></div><div style="color:var(--gray-500);font-size:0.9rem">現在の職種: <span id="editPositionCurrent" style="font-weight:700;color:var(--primary)"></span></div></div>
                 <input type="hidden" id="editPositionEmployeeId">
                 <div class="form-group">
-                    <label><i class="fas fa-briefcase"></i> <span data-lang="ja">新しい職種</span><span data-lang="zh" style="display:none">新职位</span></label>
+                    <label>新しい職種</label>
                     <div class="position-select" id="editPositionOptions">
-                        <button type="button" class="position-option" data-position="前台/服务区" onclick="selectEditPosition(this)">
-                            <i class="fas fa-door-open"></i>
-                            <span data-lang="ja">フロント</span>
-                            <span data-lang="zh" style="display:none">前台</span>
-                        </button>
-                        <button type="button" class="position-option" data-position="厨房区" onclick="selectEditPosition(this)">
-                            <i class="fas fa-utensils"></i>
-                            <span data-lang="ja">厨房</span>
-                            <span data-lang="zh" style="display:none">厨房</span>
-                        </button>
-                        <button type="button" class="position-option" data-position="拉客" onclick="selectEditPosition(this)">
-                            <i class="fas fa-handshake"></i>
-                            <span data-lang="ja">ラッカ</span>
-                            <span data-lang="zh" style="display:none">拉客</span>
-                        </button>
+                        <button class="position-option" data-position="前台/服务区" onclick="selectEditPosition(this)"><i class="fas fa-door-open"></i> フロント</button>
+                        <button class="position-option" data-position="厨房区" onclick="selectEditPosition(this)"><i class="fas fa-utensils"></i> 厨房</button>
+                        <button class="position-option" data-position="拉客" onclick="selectEditPosition(this)"><i class="fas fa-handshake"></i> ラッカ</button>
                     </div>
                 </div>
                 <div class="action-buttons">
-                    <button type="button" class="btn-primary" onclick="updateEmployeePosition()">
-                        <i class="fas fa-save"></i>
-                        <span data-lang="ja">更新</span>
-                        <span data-lang="zh" style="display:none">更新</span>
-                    </button>
-                    <button type="button" class="btn-secondary" onclick="closeModal('editPositionModal')">
-                        <span data-lang="ja">キャンセル</span>
-                        <span data-lang="zh" style="display:none">取消</span>
-                    </button>
+                    <button class="btn-primary" onclick="updateEmployeePosition()"><i class="fas fa-save"></i> 更新</button>
+                    <button class="btn-secondary" onclick="closeModal('editPositionModal')">キャンセル</button>
                 </div>
             </div>
         </div>
@@ -618,40 +325,27 @@
     <!-- Early Leave Modal -->
     <div class="modal" id="earlyLeaveModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-clock"></i> <span data-lang="ja">早退設定</span><span data-lang="zh" style="display:none">早退设置</span></h3>
-                <button type="button" class="modal-close" onclick="closeModal('earlyLeaveModal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
+            <div class="modal-header"><h3><i class="fas fa-clock"></i> 早退設定</h3><button class="modal-close" onclick="closeModal('earlyLeaveModal')"><i class="fas fa-times"></i></button></div>
             <div class="modal-body">
                 <input type="hidden" id="earlyLeaveEmployeeId">
                 <div class="form-group">
-                    <label><i class="fas fa-calendar"></i> <span data-lang="ja">日付</span><span data-lang="zh" style="display:none">日期</span></label>
+                    <label>日付</label>
                     <input type="date" id="earlyLeaveDate" class="input-field">
                 </div>
-                <div style="padding: 12px 16px; background: var(--gray-50); border-radius: var(--border-radius-sm); margin-bottom: 20px;">
-                    <span id="earlyLeaveCurrentStatus" style="font-weight: 600;"></span>
+                <div style="padding:12px 16px; background:var(--gray-50); border-radius:var(--border-radius-sm); margin-bottom:20px;">
+                    <span id="earlyLeaveCurrentStatus" style="font-weight:600;"></span>
                 </div>
                 <div class="action-buttons">
-                    <button type="button" class="btn-primary" onclick="applyEarlyLeave()">
-                        <i class="fas fa-check"></i>
-                        <span data-lang="ja">早退</span>
-                        <span data-lang="zh" style="display:none">早退</span>
-                    </button>
-                    <button type="button" class="btn-secondary" onclick="closeModal('earlyLeaveModal')">
-                        <span data-lang="ja">キャンセル</span>
-                        <span data-lang="zh" style="display:none">取消</span>
-                    </button>
+                    <button class="btn-primary" onclick="applyEarlyLeave()"><i class="fas fa-check"></i> 早退</button>
+                    <button class="btn-secondary" onclick="closeModal('earlyLeaveModal')">キャンセル</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- In-page print output (dùng cho tính năng in, thay cho popup window để tránh lỗi trên mobile) -->
     <div id="printOutput" class="print-output"></div>
 
-    <!-- Firebase Configuration -->
+    <!-- Firebase Config -->
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyB6C3s4EAPEx0GBLnBXAz4aYJfoCBEyofc",
@@ -662,62 +356,32 @@
             messagingSenderId: "377051530021",
             appId: "1:377051530021:web:e3341a1a7bcdc89ad810cc"
         };
-        
-        function showFirebaseLoadError(message) {
+        function showFirebaseLoadError(msg) {
             const banner = document.createElement('div');
-            banner.id = 'firebaseErrorBanner';
-            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;padding:12px 16px;font-size:13px;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
-            banner.textContent = message;
+            banner.id='firebaseErrorBanner';
+            banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;padding:12px 16px;font-size:13px;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+            banner.textContent=msg;
             document.body.appendChild(banner);
-            
-            const status = document.getElementById('connectionStatus');
-            if (status) {
-                status.innerHTML = '<i class="fas fa-triangle-exclamation"></i><span>DB エラー</span>';
-                status.className = 'connection-status disconnected';
-            }
+            const status=document.getElementById('connectionStatus');
+            if(status){ status.innerHTML='<i class="fas fa-triangle-exclamation"></i><span>DB エラー</span>'; status.className='connection-status disconnected'; }
         }
-        
         try {
-            if (typeof firebase === 'undefined') {
-                throw new Error('SDK_NOT_LOADED');
-            }
-            
+            if(typeof firebase==='undefined') throw new Error('SDK_NOT_LOADED');
             firebase.initializeApp(firebaseConfig);
-            window.database = firebase.database();
-            
-            window.database.ref('.info/connected').on('value', (snap) => {
-                const status = document.getElementById('connectionStatus');
-                if (snap.val() === true) {
-                    status.innerHTML = '<i class="fas fa-wifi"></i><span data-lang="ja">接続済み</span><span data-lang="zh" style="display:none">已连接</span>';
-                    status.className = 'connection-status connected';
-                } else {
-                    status.innerHTML = '<i class="fas fa-wifi-slash"></i><span data-lang="ja">接続切れ</span><span data-lang="zh" style="display:none">未连接</span>';
-                    status.className = 'connection-status disconnected';
-                }
-            }, (error) => {
-                console.error("❌ Firebase connection check error:", error);
-                showFirebaseLoadError('⚠️ Firebase: ' + (error.code || error.message || error));
+            window.database=firebase.database();
+            window.database.ref('.info/connected').on('value', snap=>{
+                const status=document.getElementById('connectionStatus');
+                if(snap.val()===true){ status.innerHTML='<i class="fas fa-wifi"></i><span>接続済み</span>'; status.className='connection-status connected'; }
+                else { status.innerHTML='<i class="fas fa-wifi-slash"></i><span>接続切れ</span>'; status.className='connection-status disconnected'; }
             });
-            
-            console.log("✅ Firebase initialized");
-        } catch (error) {
-            console.error("❌ Firebase initialization error:", error);
-            
-            if (error.message === 'SDK_NOT_LOADED') {
-                showFirebaseLoadError('⚠️ Firebase SDK が読み込めませんでした。ネットワーク接続を確認するか、実際のブラウザ／サーバーで開いてください（プレビュー環境では外部接続がブロックされることがあります）。 / Không tải được Firebase SDK — kiểm tra mạng hoặc mở bằng trình duyệt/hosting thật (một số công cụ xem trước có thể chặn kết nối ra ngoài).');
-            } else {
-                showFirebaseLoadError('⚠️ Firebase init error: ' + (error.message || error));
-            }
+            console.log('✅ Firebase initialized');
+        } catch(e) {
+            console.error('❌ Firebase init error:', e);
+            if(e.message==='SDK_NOT_LOADED') showFirebaseLoadError('⚠️ Firebase SDK が読み込めませんでした。ネットワークを確認してください。');
+            else showFirebaseLoadError('⚠️ Firebase init error: '+e.message);
         }
-        
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                document.getElementById('loadingScreen').style.display = 'none';
-            }, 500);
-        });
+        window.addEventListener('load', function(){ setTimeout(function(){ document.getElementById('loadingScreen').style.display='none'; }, 500); });
     </script>
-
-    <!-- Main JavaScript -->
     <script src="app.js"></script>
 </body>
 </html>
