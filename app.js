@@ -16,7 +16,7 @@ let dragEmployeeId = null; // nhân viên đang được kéo (drag & drop đổ
 const POSITIONS = [
     { key: '前台/服务区', ja: 'フロント', zh: '前台', icon: 'fa-door-open', cls: 'front-desk', color: 'info' },
     { key: '厨房区', ja: '厨房', zh: '厨房', icon: 'fa-utensils', cls: 'kitchen', color: 'warning' },
-    { key: '拉客', ja: 'ラッカ', zh: '拉客', icon: 'fa-bullhorn', cls: 'tout', color: 'secondary' }
+    { key: '拉客', ja: '拉客', zh: '拉客', icon: 'fa-bullhorn', cls: 'tout', color: 'secondary' }
 ];
 
 function getPositionInfo(positionKey) {
@@ -554,16 +554,14 @@ function getWeekPattern(employeeId, weekOffset = 0) {
         let status = 'none';
         let timeLabel = '';
         let period = '';
-        let earlyLeave = false;
         if (schedule) {
             status = schedule.isDayOff ? 'rest' : 'work';
             if (!schedule.isDayOff && schedule.startTime && schedule.endTime) {
                 timeLabel = `${schedule.startTime.substring(0,5)}-${schedule.endTime.substring(0,5)}`;
                 period = getShiftPeriod(schedule.startTime);
-                earlyLeave = !!schedule.earlyLeave;
             }
         }
-        return { letter: dayLetters[index], status, timeLabel, period, earlyLeave, dateString: day.dateString };
+        return { letter: dayLetters[index], status, timeLabel, period, dateString: day.dateString };
     });
 }
 
@@ -572,9 +570,8 @@ function generateWeekPatternHtml(employeeId, weekOffset = 0) {
     return `
         <div class="week-pattern-strip">
             ${pattern.map(day => `
-                <div class="week-pattern-dot ${day.status} ${day.period}" title="${day.letter}${day.timeLabel ? ' ' + day.timeLabel : ''}${day.earlyLeave ? (currentLanguage === 'ja' ? ' (早退)' : ' (早退)') : ''}">
+                <div class="week-pattern-dot ${day.status} ${day.period}" title="${day.letter}${day.timeLabel ? ' ' + day.timeLabel : ''}">
                     <span>${day.letter}</span>
-                    ${day.earlyLeave ? '<i class="fas fa-arrow-right-from-bracket early-leave-dot"></i>' : ''}
                 </div>
             `).join('')}
         </div>
@@ -975,7 +972,6 @@ function buildCopiedScheduleData(schedule, targetDate) {
         updatedAt: Date.now()
     };
     if (schedule.notes) data.notes = schedule.notes;
-    if (schedule.earlyLeave) data.earlyLeave = true;
     return data;
 }
 
@@ -1710,14 +1706,13 @@ function buildWeeklyRowHtml(employee, days, schedulesByEmployee) {
                                 <span>${schedule.startTime ? schedule.startTime.substring(0, 5) : ''}</span>
                                 <span>${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}</span>
                             </div>
-                            ${schedule.earlyLeave ? `<div class="early-leave-badge">${currentLanguage === 'ja' ? '早退' : '早退'}</div>` : ''}
                         `;
                     }
                 }
                 
                 const title = schedule ? (schedule.isDayOff ? 
                     (currentLanguage === 'ja' ? '休み' : '休息') : 
-                    `${schedule.startTime || ''}-${schedule.endTime || ''}${schedule.earlyLeave ? (currentLanguage === 'ja' ? ' (早退)' : ' (早退)') : ''}`) : 
+                    `${schedule.startTime || ''}-${schedule.endTime || ''}`) : 
                     (currentLanguage === 'ja' ? 'クリックで追加' : '点击添加');
                 
                 return `
@@ -1881,14 +1876,6 @@ function editDaySchedule(employeeId, date) {
                 </div>
             </div>
             
-            <div class="form-group early-leave-group" id="editEarlyLeaveGroup" style="display: ${!schedule || !schedule.isDayOff ? 'block' : 'none'}">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="editEarlyLeave" ${schedule && schedule.earlyLeave ? 'checked' : ''}>
-                    <i class="fas fa-person-walking-arrow-right"></i>
-                    <span>${currentLanguage === 'ja' ? '早退としてマーク' : '标记为早退'}</span>
-                </label>
-            </div>
-            
             <div class="action-buttons">
                 <button type="button" class="btn-primary" onclick="saveDaySchedule('${employeeId}', '${date}')">
                     <i class="fas fa-save"></i> ${currentLanguage === 'ja' ? '保存' : '保存'}
@@ -1934,7 +1921,6 @@ function editEmployeeSchedule() {
 
 function setEditScheduleType(type) {
     const timeGroup = document.getElementById('editTimeGroup');
-    const earlyLeaveGroup = document.getElementById('editEarlyLeaveGroup');
     const scope = document.getElementById('editTypeSelector');
     if (!scope) return;
     
@@ -1947,12 +1933,10 @@ function setEditScheduleType(type) {
         workBtn.classList.add('active');
         restBtn.classList.remove('active');
         if (timeGroup) timeGroup.style.display = 'grid';
-        if (earlyLeaveGroup) earlyLeaveGroup.style.display = 'block';
     } else {
         restBtn.classList.add('active');
         workBtn.classList.remove('active');
         if (timeGroup) timeGroup.style.display = 'none';
-        if (earlyLeaveGroup) earlyLeaveGroup.style.display = 'none';
     }
 }
 
@@ -1987,12 +1971,10 @@ function saveDaySchedule(employeeId, date) {
         
         scheduleData.startTime = startTime;
         scheduleData.endTime = endTime;
-        scheduleData.earlyLeave = !!document.getElementById('editEarlyLeave')?.checked;
     } else {
         scheduleData.startTime = '00:00';
         scheduleData.endTime = '00:00';
         scheduleData.notes = currentLanguage === 'ja' ? '休み' : '休息';
-        scheduleData.earlyLeave = false;
     }
     
     if (!window.database) {
@@ -2331,9 +2313,6 @@ function buildPrintDayRow(day, schedule, dayNames) {
             const end = schedule.endTime ? schedule.endTime.substring(0, 5) : '';
             timeDisplay = `${start} - ${end}`;
             hoursDisplay = `${calculateShiftHours(schedule.startTime, schedule.endTime)}h`;
-            if (schedule.earlyLeave) {
-                statusText += currentLanguage === 'ja' ? ' (早退)' : ' (早退)';
-            }
         }
     }
 
@@ -2715,7 +2694,6 @@ function createTodayItem(schedule) {
                     <div style="font-size: 12px; color: var(--gray-500); font-weight: 500;">
                         ${currentLanguage === 'ja' ? '時間:' : '时间:'} ${calculateShiftHours(schedule.startTime, schedule.endTime)}h
                         ${shiftPeriodLabel(schedule.startTime) ? ' · ' + shiftPeriodLabel(schedule.startTime) : ''}
-                        ${schedule.earlyLeave ? ` · <span style="color: var(--danger); font-weight: 700;">${currentLanguage === 'ja' ? '早退' : '早退'}</span>` : ''}
                     </div>
                 ` : ''}
             </div>

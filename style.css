@@ -17,6 +17,11 @@
     --warning: #f59e0b;
     --warning-light: #fef3c7;
     --warning-dark: #c2410c;
+
+    /* 晚班 (ca muộn, từ 17h): dùng tím riêng biệt để không trùng màu cam của
+       ngày nghỉ (rest) và vị trí 厨房 (kitchen) trong khu vực quản lý lịch */
+    --late-shift: #7c3aed;
+    --late-shift-light: #ede9fe;
     
     /* Danger Colors */
     --danger: #ef4444;
@@ -642,7 +647,7 @@ body {
    so you can see the whole week (work/rest) at a glance without opening the modal */
 .week-pattern-strip {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 4px;
     padding-top: 10px;
     border-top: 1px dashed var(--border);
@@ -666,22 +671,15 @@ body {
 }
 
 .week-pattern-dot.work.late {
-    background: #ffedd5;
-    color: var(--warning-dark);
-    border-color: rgba(194, 65, 12, 0.3);
+    background: var(--late-shift-light);
+    color: var(--late-shift);
+    border-color: rgba(124, 58, 237, 0.3);
 }
 
 .week-pattern-dot.rest {
     background: var(--warning-light);
     color: var(--warning);
     border-color: rgba(245, 158, 11, 0.3);
-}
-
-.early-leave-dot {
-    display: block;
-    font-size: 0.55rem;
-    margin-top: 2px;
-    color: var(--danger);
 }
 
 /* ===== WEEKLY SCHEDULE VIEW ===== */
@@ -717,7 +715,7 @@ body {
 
 .week-header {
     display: grid;
-    grid-template-columns: 150px repeat(7, 1fr);
+    grid-template-columns: 150px repeat(7, minmax(0, 1fr));
     background: var(--primary-light);
     border-bottom: 1px solid var(--border);
     position: sticky;
@@ -735,6 +733,8 @@ body {
     color: var(--dark);
     border-right: 1px solid var(--border);
     transition: all var(--transition-fast);
+    min-width: 0;
+    overflow: hidden;
 }
 
 .week-header-cell:first-child {
@@ -747,6 +747,8 @@ body {
     left: 0;
     z-index: 3;
     background: rgba(219, 234, 254, 0.95);
+    overflow: visible;
+    white-space: nowrap;
 }
 
 .week-header-cell:last-child {
@@ -766,7 +768,7 @@ body {
    gây hở khoảng trắng và lệch màu ở cạnh phải khi cuộn ngang. */
 .week-position-header {
     display: grid;
-    grid-template-columns: 150px repeat(7, 1fr);
+    grid-template-columns: 150px repeat(7, minmax(0, 1fr));
 }
 
 .week-position-header-label {
@@ -807,7 +809,7 @@ body {
 
 .week-row {
     display: grid;
-    grid-template-columns: 150px repeat(7, 1fr);
+    grid-template-columns: 150px repeat(7, minmax(0, 1fr));
     border-bottom: 1px solid var(--border);
     transition: all var(--transition-fast);
     min-height: 100px;
@@ -826,6 +828,7 @@ body {
     border-right: 1px solid var(--border);
     position: relative;
     min-height: 100px;
+    min-width: 0;
 }
 
 .week-cell:first-child {
@@ -842,6 +845,15 @@ body {
     left: 0;
     z-index: 1;
     min-height: 100px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.week-cell:first-child > div {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .week-row:hover .week-cell:first-child {
@@ -886,29 +898,19 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
-/* 早班 (trước 17h): giữ màu xanh lá (success). 晚班 (từ 17h): màu cam (warning-ish nhưng khác 休 一chút để không nhầm) */
+/* 早班 (trước 17h): xanh lá (success). 晚班 (từ 17h): tím (late-shift) - cố tình khác
+   màu cam của 休 (rest) và vị trí 厨房 (kitchen) để khu vực quản lý lịch không bị trùng màu */
 .day-schedule-item.work.late {
-    background: linear-gradient(135deg, rgba(234, 88, 12, 0.15), rgba(234, 88, 12, 0.25));
-    border: 1px solid rgba(234, 88, 12, 0.35);
-    color: var(--warning-dark, var(--warning));
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(124, 58, 237, 0.25));
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    color: var(--late-shift);
 }
 
 .day-schedule-item.work.late:hover {
-    background: linear-gradient(135deg, rgba(234, 88, 12, 0.25), rgba(234, 88, 12, 0.35));
-    border-color: var(--warning-dark, var(--warning));
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(124, 58, 237, 0.35));
+    border-color: var(--late-shift);
     transform: scale(1.05);
     box-shadow: var(--shadow-sm);
-}
-
-.early-leave-badge {
-    margin-top: 2px;
-    font-size: 0.6rem;
-    font-weight: 800;
-    color: var(--danger);
-    background: var(--danger-light);
-    border-radius: 6px;
-    padding: 1px 5px;
-    letter-spacing: 0.02em;
 }
 
 .day-schedule-item.rest {
@@ -1041,35 +1043,6 @@ body {
     min-width: 32px;
     text-align: center;
     font-size: 1rem;
-}
-
-.early-leave-group {
-    margin-top: -6px;
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
-    border: 2px solid var(--border);
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    font-weight: 600;
-    color: var(--gray-600);
-    transition: all var(--transition);
-}
-
-.checkbox-label:has(input:checked) {
-    border-color: var(--danger);
-    background: var(--danger-light);
-    color: var(--danger);
-}
-
-.checkbox-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--danger);
 }
 
 .quick-time-buttons {
@@ -1406,7 +1379,7 @@ body {
 
 .week-days {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 8px;
 }
 
@@ -1531,7 +1504,7 @@ body {
 /* Quick Week Modal */
 .weekdays-selector {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 8px;
     margin-bottom: 16px;
 }
@@ -1845,21 +1818,25 @@ body {
     }
     
     .weekly-schedule-container {
-        max-height: calc(100vh - 180px);
+        max-height: calc(100vh - 180px - 88px);
     }
     
     .weekly-schedule {
-        max-height: calc(100vh - 180px);
+        max-height: calc(100vh - 180px - 88px);
+        padding-bottom: 12px;
     }
     
     .week-header, .week-row, .week-position-header {
-        grid-template-columns: 100px repeat(7, 1fr);
+        grid-template-columns: 84px repeat(7, minmax(0, 1fr));
+    }
+    
+    .week-cell:first-child, .week-header-cell:first-child {
+        width: 84px;
     }
     
     .week-cell:first-child {
-        font-size: 0.75rem;
-        padding-left: 8px;
-        width: 100px;
+        font-size: 0.7rem;
+        padding-left: 6px;
     }
     
     .day-schedule-item {
@@ -1929,7 +1906,7 @@ body {
     }
     
     .week-header, .week-row, .week-position-header {
-        grid-template-columns: 80px repeat(7, 1fr);
+        grid-template-columns: 80px repeat(7, minmax(0, 1fr));
     }
     
     .week-cell:first-child {
@@ -1963,7 +1940,7 @@ body {
     }
     
     .week-header, .week-row, .week-position-header {
-        grid-template-columns: 120px repeat(7, 1fr);
+        grid-template-columns: 120px repeat(7, minmax(0, 1fr));
     }
 }
 
@@ -1985,7 +1962,7 @@ body {
     }
     
     .week-header, .week-row, .week-position-header {
-        grid-template-columns: 170px repeat(7, 1fr);
+        grid-template-columns: 170px repeat(7, minmax(0, 1fr));
     }
     
     .week-header-cell {
@@ -2124,7 +2101,7 @@ body {
 /* Improve print layout for mobile */
 @media print and (max-width: 600px) {
     .week-header, .week-row, .week-position-header {
-        grid-template-columns: 80px repeat(7, 1fr) !important;
+        grid-template-columns: 80px repeat(7, minmax(0, 1fr)) !important;
     }
     
     .week-cell:first-child {
@@ -2161,6 +2138,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-wrap: wrap;
     gap: 4px;
     margin-top: 5px;
 }
