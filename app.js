@@ -545,6 +545,7 @@ function getWeekPattern(employeeId, weekOffset = 0) {
     const endDate = new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
     const weekSchedule = getEmployeeSchedulesForWeek(employeeId, startDate, endDate);
     const days = generateWeekDays(startDate);
+    const employee = employees.find(e => e.id === employeeId);
     const dayLetters = currentLanguage === 'ja' 
         ? ['月', '火', '水', '木', '金', '土', '日']
         : ['一', '二', '三', '四', '五', '六', '日'];
@@ -554,14 +555,19 @@ function getWeekPattern(employeeId, weekOffset = 0) {
         let status = 'none';
         let timeLabel = '';
         let period = '';
+        let diffPosition = null;
         if (schedule) {
             status = schedule.isDayOff ? 'rest' : 'work';
             if (!schedule.isDayOff && schedule.startTime && schedule.endTime) {
                 timeLabel = `${schedule.startTime.substring(0,5)}-${schedule.endTime.substring(0,5)}`;
                 period = getShiftPeriod(schedule.startTime);
+                const dayPosition = schedule.employeePosition;
+                if (employee && dayPosition && dayPosition !== employee.position) {
+                    diffPosition = dayPosition;
+                }
             }
         }
-        return { letter: dayLetters[index], status, timeLabel, period, dateString: day.dateString };
+        return { letter: dayLetters[index], status, timeLabel, period, diffPosition, dateString: day.dateString };
     });
 }
 
@@ -570,8 +576,9 @@ function generateWeekPatternHtml(employeeId, weekOffset = 0) {
     return `
         <div class="week-pattern-strip">
             ${pattern.map(day => `
-                <div class="week-pattern-dot ${day.status} ${day.period}" title="${day.letter}${day.timeLabel ? ' ' + day.timeLabel : ''}">
+                <div class="week-pattern-dot ${day.status} ${day.period}" title="${day.letter}${day.timeLabel ? ' ' + day.timeLabel : ''}${day.diffPosition ? ' · ' + positionLabel(day.diffPosition) : ''}">
                     <span>${day.letter}</span>
+                    ${day.diffPosition ? `<i class="fas ${positionIcon(day.diffPosition)} diff-position-dot"></i>` : ''}
                 </div>
             `).join('')}
         </div>
@@ -892,19 +899,12 @@ function changeEmployeePosition(employeeId, newPosition) {
         return;
     }
     
+    // Lưu ý: chỉ đổi vị trí MẶC ĐỊNH (職種) của nhân viên cho các ca làm mới sau này.
+    // KHÔNG ghi đè lên employeePosition của những ca làm đã có sẵn trong lịch, vì mỗi
+    // ngày có thể đã được set vị trí làm việc riêng khác với vị trí mặc định (xem
+    // saveDaySchedule / editShiftPosition) - ví dụ nhân viên A làm 厨房 hôm nay nhưng
+    // đổi vị trí mặc định sang 拉客 thì lịch cũ vẫn giữ nguyên 厨房 cho đúng thực tế.
     window.database.ref(`employees/${employeeId}`).update({ position: newPosition })
-    .then(() => {
-        // Đồng bộ lại field employeePosition trong các bản ghi lịch làm việc đã có của nhân viên này
-        const updates = {};
-        Object.entries(schedules).forEach(([id, s]) => {
-            if (s && s.employeeId === employeeId) {
-                updates[`schedules/${id}/employeePosition`] = newPosition;
-            }
-        });
-        if (Object.keys(updates).length > 0) {
-            return window.database.ref().update(updates);
-        }
-    })
     .then(() => {
         closeModal('quickPositionModal');
         showMessage(currentLanguage === 'ja' ? '職種を変更しました' : '职位已更改', 'success');
@@ -1701,18 +1701,22 @@ function buildWeeklyRowHtml(employee, days, schedulesByEmployee) {
                     } else {
                         const shiftPeriod = getShiftPeriod(schedule.startTime);
                         scheduleClass = `work ${shiftPeriod}`;
+                        const dayPosition = schedule.employeePosition || employee.position;
+                        const isDiffPosition = dayPosition !== employee.position;
                         scheduleText = `
                             <div class="compact-time">
                                 <span>${schedule.startTime ? schedule.startTime.substring(0, 5) : ''}</span>
                                 <span>${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}</span>
                             </div>
+                            ${isDiffPosition ? `<div class="diff-position-badge"><i class="fas ${positionIcon(dayPosition)}"></i> ${positionLabel(dayPosition)}</div>` : ''}
                         `;
                     }
                 }
                 
+                const dayPositionForTitle = schedule && !schedule.isDayOff ? (schedule.employeePosition || employee.position) : null;
                 const title = schedule ? (schedule.isDayOff ? 
                     (currentLanguage === 'ja' ? '休み' : '休息') : 
-                    `${schedule.startTime || ''}-${schedule.endTime || ''}`) : 
+                    `${schedule.startTime || ''}-${schedule.endTime || ''}${dayPositionForTitle && dayPositionForTitle !== employee.position ? ' · ' + positionLabel(dayPositionForTitle) : ''}`) : 
                     (currentLanguage === 'ja' ? 'クリックで追加' : '点击添加');
                 
                 return `
@@ -1876,6 +1880,23 @@ function editDaySchedule(employeeId, date) {
                 </div>
             </div>
             
+            <div class="form-group" id="editPositionGroup" style="display: ${!schedule || !schedule.isDayOff ? 'block' : 'none'}">
+                <label>${currentLanguage === 'ja' ? 'この日の職種' : '当天职位'}
+                    <span style="font-weight: 400; color: var(--gray-400); font-size: 12px;">
+                        (${currentLanguage === 'ja' ? '普段と違う場合のみ変更' : '仅在与平时不同时更改'})
+                    </span>
+                </label>
+                <div class="type-selector" id="editPositionSelector">
+                    ${POSITIONS.map(pos => `
+                        <button type="button" class="type-btn ${(schedule ? schedule.employeePosition : employee.position) === pos.key ? 'active' : ''}" 
+                                data-position="${pos.key}" onclick="setEditSchedulePosition('${pos.key}')">
+                            <i class="fas ${pos.icon}"></i>
+                            <span>${positionLabel(pos.key)}</span>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+            
             <div class="action-buttons">
                 <button type="button" class="btn-primary" onclick="saveDaySchedule('${employeeId}', '${date}')">
                     <i class="fas fa-save"></i> ${currentLanguage === 'ja' ? '保存' : '保存'}
@@ -1921,6 +1942,7 @@ function editEmployeeSchedule() {
 
 function setEditScheduleType(type) {
     const timeGroup = document.getElementById('editTimeGroup');
+    const positionGroup = document.getElementById('editPositionGroup');
     const scope = document.getElementById('editTypeSelector');
     if (!scope) return;
     
@@ -1933,11 +1955,22 @@ function setEditScheduleType(type) {
         workBtn.classList.add('active');
         restBtn.classList.remove('active');
         if (timeGroup) timeGroup.style.display = 'grid';
+        if (positionGroup) positionGroup.style.display = 'block';
     } else {
         restBtn.classList.add('active');
         workBtn.classList.remove('active');
         if (timeGroup) timeGroup.style.display = 'none';
+        if (positionGroup) positionGroup.style.display = 'none';
     }
+}
+
+// Chọn vị trí làm việc RIÊNG cho ngày đang sửa (có thể khác vị trí mặc định của nhân viên)
+function setEditSchedulePosition(positionKey) {
+    const scope = document.getElementById('editPositionSelector');
+    if (!scope) return;
+    scope.querySelectorAll('.type-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.position === positionKey);
+    });
 }
 
 function saveDaySchedule(employeeId, date) {
@@ -1971,6 +2004,12 @@ function saveDaySchedule(employeeId, date) {
         
         scheduleData.startTime = startTime;
         scheduleData.endTime = endTime;
+        
+        // Vị trí làm việc riêng cho ngày này (có thể khác vị trí mặc định của nhân viên,
+        // ví dụ tuần này hôm làm 厨房, hôm làm 拉客...). Mặc định lấy vị trí hiện tại
+        // của nhân viên nếu người dùng chưa chọn khác.
+        const positionBtn = document.querySelector('#editPositionSelector .type-btn.active');
+        scheduleData.employeePosition = positionBtn ? positionBtn.dataset.position : employee.position;
     } else {
         scheduleData.startTime = '00:00';
         scheduleData.endTime = '00:00';

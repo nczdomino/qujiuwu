@@ -682,6 +682,14 @@ body {
     border-color: rgba(245, 158, 11, 0.3);
 }
 
+.diff-position-dot {
+    display: block;
+    font-size: 0.6rem;
+    margin-top: 2px;
+    color: inherit;
+    opacity: 0.85;
+}
+
 /* ===== WEEKLY SCHEDULE VIEW ===== */
 .week-nav {
     display: flex;
@@ -948,6 +956,21 @@ body {
     font-weight: 700;
 }
 
+.diff-position-badge {
+    margin-top: 3px;
+    font-size: 0.58rem;
+    font-weight: 800;
+    color: var(--dark);
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 6px;
+    padding: 1px 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+}
+
 .day-time {
     font-weight: 700;
     font-size: 0.75rem;
@@ -1108,6 +1131,22 @@ body {
 
 .type-btn i {
     font-size: 1.5rem;
+}
+
+/* Bộ chọn vị trí RIÊNG cho từng ngày trong modal sửa ca làm - nhỏ gọn hơn
+   .type-btn mặc định vì có tới 3 lựa chọn (フロント/厨房/拉客) thay vì 2 */
+#editPositionSelector.type-selector {
+    gap: 8px;
+}
+
+#editPositionSelector .type-btn {
+    padding: 10px 6px;
+    gap: 6px;
+    font-size: 0.78rem;
+}
+
+#editPositionSelector .type-btn i {
+    font-size: 1.1rem;
 }
 
 .action-buttons {
