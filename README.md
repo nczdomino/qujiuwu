@@ -14,3 +14,9 @@
 11. Tối ưu giao diện mobile: header/nav gọn hơn, card nhân viên compact hơn, lịch tuần chữ hợp lý hơn.
 
 Toàn bộ tính năng cũ được giữ nguyên.
+
+## Tạo tài khoản đăng nhập cho nhân viên (mới)
+- Mở chi tiết 1 nhân viên → nút "ログインアカウント" (登录账号) → nhập email + mật khẩu → "アカウント作成".
+- Cần đã bật Email/Password ở Firebase Console → Authentication → Sign-in method.
+- Lưu ý kỹ thuật: 3 file Firebase SDK (app/database/auth) giờ tải qua CDN chính thức của Google (gstatic.com) thay vì host cục bộ như trước, vì file auth-compat.js quá lớn để nhúng trực tiếp. 2 file cục bộ cũ (firebase-app-compat.js, firebase-database-compat.js) không còn được dùng, có thể xoá khỏi thư mục hosting nếu muốn dọn dẹp.
+- Do giới hạn của Firebase phía client, admin có thể TẠO tài khoản mới nhưng không thể tự đổi mật khẩu người khác trực tiếp — nếu nhân viên quên mật khẩu, cần bấm "リンク解除" (解除关联) rồi tạo lại tài khoản mới.

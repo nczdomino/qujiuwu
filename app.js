@@ -1068,6 +1068,151 @@ function copyAllScheduleToNextWeek() {
     });
 }
 
+// ==================== TÀI KHOẢN ĐĂNG NHẬP CHO NHÂN VIÊN (Firebase Authentication) ====================
+function showEmployeeAccountModal(employeeId) {
+    const employee = employees.find(e => e.id === employeeId);
+    if (!employee) return;
+    
+    const body = document.getElementById('accountModalBody');
+    if (!body) return;
+    
+    if (employee.uid && employee.loginEmail) {
+        body.innerHTML = `
+            <div style="text-align:center; margin-bottom: 20px;">
+                <div class="employee-avatar-small" style="width:56px;height:56px;font-size:22px;margin:0 auto 10px;">${employee.name.charAt(0)}</div>
+                <div style="font-weight:700; color: var(--dark);">${employee.name}</div>
+            </div>
+            <div style="background: var(--success-light); border: 1px solid rgba(16,185,129,0.3); border-radius: var(--border-radius); padding: 16px; margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:8px; color: var(--success); font-weight:700; margin-bottom: 6px;">
+                    <i class="fas fa-circle-check"></i>
+                    <span data-lang="ja">アカウント設定済み</span><span data-lang="zh" style="display:none">已设置账号</span>
+                </div>
+                <div style="font-size: 13px; color: var(--gray-600);">Email: <strong>${employee.loginEmail}</strong></div>
+            </div>
+            <p style="font-size:12px; color: var(--gray-500); margin-bottom:16px;">
+                <span data-lang="ja">※ パスワードを忘れた場合は、リンク解除後に新しいメール/パスワードで再作成してください(クライアント側の制約でパスワードの直接変更はできません)。</span>
+                <span data-lang="zh" style="display:none">※ 如果忘记密码，请先解除关联，再用新的邮箱/密码重新创建(受客户端限制，无法直接修改密码)。</span>
+            </p>
+            <button type="button" class="btn-secondary" style="width:100%;" onclick="unlinkEmployeeAccount('${employeeId}')">
+                <i class="fas fa-link-slash"></i>
+                <span data-lang="ja">リンク解除</span><span data-lang="zh" style="display:none">解除关联</span>
+            </button>
+        `;
+    } else {
+        body.innerHTML = `
+            <div style="text-align:center; margin-bottom: 20px;">
+                <div class="employee-avatar-small" style="width:56px;height:56px;font-size:22px;margin:0 auto 10px;">${employee.name.charAt(0)}</div>
+                <div style="font-weight:700; color: var(--dark);">${employee.name}</div>
+                <div style="font-size:12px; color: var(--gray-400); margin-top:4px;">
+                    <span data-lang="ja">まだログインアカウントがありません</span><span data-lang="zh" style="display:none">还没有登录账号</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label data-lang="ja">メールアドレス</label>
+                <label data-lang="zh" style="display:none">邮箱</label>
+                <input type="email" id="newAccountEmail" class="input-field" placeholder="staff1@example.com">
+            </div>
+            <div class="form-group">
+                <label data-lang="ja">パスワード(6文字以上)</label>
+                <label data-lang="zh" style="display:none">密码(至少6位)</label>
+                <input type="text" id="newAccountPassword" class="input-field" placeholder="••••••">
+            </div>
+            <button type="button" class="btn-primary" style="width:100%;" onclick="createEmployeeAccount('${employeeId}')">
+                <i class="fas fa-user-plus"></i>
+                <span data-lang="ja">アカウント作成</span><span data-lang="zh" style="display:none">创建账号</span>
+            </button>
+        `;
+    }
+    
+    applyLanguageToElement(body);
+    openModal('accountModal');
+}
+
+// Áp dụng lại trạng thái ẩn/hiện data-lang cho nội dung vừa render động (vì nội dung này
+// được tạo sau khi trang đã load, không tự động được switchLanguage() xử lý)
+function applyLanguageToElement(container) {
+    if (!container) return;
+    container.querySelectorAll('[data-lang]').forEach(el => {
+        const lang = el.getAttribute('data-lang');
+        el.style.display = (lang === currentLanguage) ? '' : 'none';
+    });
+}
+
+function createEmployeeAccount(employeeId) {
+    const employee = employees.find(e => e.id === employeeId);
+    if (!employee) return;
+    
+    const email = document.getElementById('newAccountEmail')?.value.trim();
+    const password = document.getElementById('newAccountPassword')?.value;
+    
+    if (!email || !password) {
+        showMessage(currentLanguage === 'ja' ? 'メールとパスワードを入力してください' : '请输入邮箱和密码', 'warning');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showMessage(currentLanguage === 'ja' ? 'パスワードは6文字以上にしてください' : '密码至少需要6位', 'warning');
+        return;
+    }
+    
+    if (!window.secondaryApp || !window.database) {
+        showMessage(currentLanguage === 'ja' ? "データベース接続エラー" : "数据库连接错误", "error");
+        return;
+    }
+    
+    // Dùng app phụ (secondaryApp) để tạo tài khoản, tránh làm mất phiên đăng nhập hiện tại
+    window.secondaryApp.auth().createUserWithEmailAndPassword(email, password)
+    .then(cred => {
+        const uid = cred.user.uid;
+        return window.secondaryApp.auth().signOut().then(() => uid);
+    })
+    .then(uid => {
+        return window.database.ref(`employees/${employeeId}`).update({
+            uid: uid,
+            loginEmail: email
+        });
+    })
+    .then(() => {
+        showMessage(currentLanguage === 'ja' ? 'アカウントを作成しました' : '账号创建成功', 'success');
+        showEmployeeAccountModal(employeeId);
+    })
+    .catch(error => {
+        let msg = error.message;
+        if (error.code === 'auth/email-already-in-use') {
+            msg = currentLanguage === 'ja' ? 'このメールは既に使われています' : '该邮箱已被使用';
+        } else if (error.code === 'auth/weak-password') {
+            msg = currentLanguage === 'ja' ? 'パスワードが弱すぎます(6文字以上にしてください)' : '密码强度不够(至少6位)';
+        } else if (error.code === 'auth/invalid-email') {
+            msg = currentLanguage === 'ja' ? 'メールアドレスの形式が正しくありません' : '邮箱格式不正确';
+        }
+        showMessage((currentLanguage === 'ja' ? '作成失敗: ' : '创建失败: ') + msg, 'error');
+    });
+}
+
+function unlinkEmployeeAccount(employeeId) {
+    const employee = employees.find(e => e.id === employeeId);
+    if (!employee) return;
+    
+    const confirmMsg = currentLanguage === 'ja' 
+        ? `${employee.name} のログインアカウントのリンクを解除しますか?`
+        : `确定要解除 ${employee.name} 的登录账号关联吗?`;
+    if (!confirm(confirmMsg)) return;
+    
+    if (!window.database) {
+        showMessage(currentLanguage === 'ja' ? "データベース接続エラー" : "数据库连接错误", "error");
+        return;
+    }
+    
+    window.database.ref(`employees/${employeeId}`).update({ uid: null, loginEmail: null })
+    .then(() => {
+        showMessage(currentLanguage === 'ja' ? 'リンクを解除しました' : '已解除关联', 'success');
+        showEmployeeAccountModal(employeeId);
+    })
+    .catch(error => {
+        showMessage((currentLanguage === 'ja' ? '設定失敗: ' : '设置失败: ') + error.message, 'error');
+    });
+}
+
 function updateAllEmployeeSelects() {
     updateScheduleEmployeeSelect();
     updateQuickWeekEmployeeSelect();
