@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>鍛治町酒場 神田店 - マイスケジュール</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👤</text></svg>">
+    <style>
+        html, body { min-height: 100vh; }
+        body.staff-body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .staff-app {
+            width: 100%;
+            max-width: 520px;
+            min-height: 100vh;
+            background: white;
+            margin: 0 auto;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        @media (min-width: 640px) {
+            .staff-app {
+                margin: 20px auto;
+                min-height: calc(100vh - 40px);
+                border-radius: var(--border-radius-lg);
+                box-shadow: var(--shadow-lg);
+                overflow: hidden;
+            }
+        }
+        .staff-login-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 32px 24px;
+        }
+        .staff-login-logo {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .staff-login-logo i {
+            font-size: 2.6rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        .staff-login-logo h1 {
+            font-size: 1.15rem;
+            color: var(--dark);
+        }
+        .staff-login-error {
+            background: var(--danger-light);
+            color: var(--danger);
+            border-radius: var(--border-radius-sm);
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: none;
+        }
+        .staff-main { display: none; flex-direction: column; flex: 1; }
+        .staff-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        .staff-topbar-name { font-weight: 700; font-size: 1rem; }
+        .staff-topbar-position { font-size: 12px; opacity: 0.9; }
+        .staff-topbar-actions { display: flex; gap: 10px; }
+        .staff-icon-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .staff-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+        .staff-tab {
+            flex: 1;
+            padding: 13px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--gray-500);
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+        }
+        .staff-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .staff-content { flex: 1; padding: 18px 16px 90px; overflow-y: auto; }
+        .staff-week-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .staff-week-nav .week-label { font-weight: 700; color: var(--dark); font-size: 14px; }
+        .staff-day-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius);
+            margin-bottom: 10px;
+        }
+        .staff-day-row.today { border-color: var(--primary); background: var(--primary-light); }
+        .staff-day-date { width: 54px; text-align: center; flex-shrink: 0; }
+        .staff-day-date .dow { font-size: 11px; color: var(--gray-500); font-weight: 700; }
+        .staff-day-date .num { font-size: 1.1rem; font-weight: 800; color: var(--dark); }
+        .staff-day-info { flex: 1; }
+        .staff-day-status { font-weight: 700; font-size: 14px; }
+        .staff-day-status.work { color: var(--success); }
+        .staff-day-status.rest { color: var(--warning); }
+        .staff-day-status.none { color: var(--gray-400); }
+        .staff-day-sub { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+        .staff-request-btn {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--gray-600);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .staff-req-item {
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius);
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+        .staff-req-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .staff-req-date { font-weight: 700; color: var(--dark); font-size: 14px; }
+        .staff-req-status {
+            font-size: 11px;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+        .staff-req-status.pending { background: var(--warning-light); color: var(--warning); }
+        .staff-req-status.approved { background: var(--success-light); color: var(--success); }
+        .staff-req-status.rejected { background: var(--danger-light); color: var(--danger); }
+        .staff-req-body { font-size: 13px; color: var(--gray-600); }
+        .staff-empty { text-align: center; padding: 40px 20px; color: var(--gray-400); }
+        .staff-empty i { font-size: 2rem; margin-bottom: 10px; display: block; }
+        .staff-fab {
+            position: absolute;
+            right: 20px;
+            bottom: 90px;
+            width: 54px; height: 54px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-size: 20px;
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="staff-body">
+
+    <div class="staff-app" id="staffApp">
+
+        <!-- LOGIN SCREEN -->
+        <div class="staff-login-wrap" id="loginScreen">
+            <div class="staff-login-logo">
+                <i class="fas fa-calendar-user"></i>
+                <h1>鍛治町酒場 神田店<br><span style="font-size:13px; color:var(--gray-500); font-weight:500;" data-lang="ja">マイスケジュール</span><span style="font-size:13px; color:var(--gray-500); font-weight:500;" data-lang="zh">我的排班</span></h1>
+            </div>
+            <div class="staff-login-error" id="loginError"></div>
+            <div class="form-group">
+                <label data-lang="ja">メールアドレス</label>
+                <label data-lang="zh">邮箱</label>
+                <input type="email" id="loginEmail" class="input-field" placeholder="staff1@example.com" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label data-lang="ja">パスワード</label>
+                <label data-lang="zh">密码</label>
+                <input type="password" id="loginPassword" class="input-field" placeholder="••••••" autocomplete="current-password">
+            </div>
+            <button type="button" class="btn-primary" style="width:100%; margin-top:8px;" onclick="doLogin()" id="loginBtn">
+                <i class="fas fa-right-to-bracket"></i>
+                <span data-lang="ja">ログイン</span><span data-lang="zh">登录</span>
+            </button>
+            <div style="text-align:center; margin-top:16px;">
+                <button type="button" onclick="toggleStaffLang()" style="background:none;border:none;color:var(--gray-400);font-size:12px;cursor:pointer;">
+                    日本語 / 中文
+                </button>
+            </div>
+        </div>
+
+        <!-- MAIN SCREEN -->
+        <div class="staff-main" id="mainScreen">
+            <div class="staff-topbar">
+                <div>
+                    <div class="staff-topbar-name" id="topbarName">-</div>
+                    <div class="staff-topbar-position" id="topbarPosition">-</div>
+                </div>
+                <div class="staff-topbar-actions">
+                    <button type="button" class="staff-icon-btn" onclick="toggleStaffLang()" title="言語">
+                        <i class="fas fa-globe"></i>
+                    </button>
+                    <button type="button" class="staff-icon-btn" onclick="doLogout()" title="Logout">
+                        <i class="fas fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="staff-tabs">
+                <button type="button" class="staff-tab active" data-tab="schedule" onclick="switchStaffTab('schedule')">
+                    <i class="fas fa-calendar-week"></i> <span data-lang="ja">シフト</span><span data-lang="zh">排班</span>
+                </button>
+                <button type="button" class="staff-tab" data-tab="requests" onclick="switchStaffTab('requests')">
+                    <i class="fas fa-paper-plane"></i> <span data-lang="ja">リクエスト</span><span data-lang="zh">申请</span>
+                </button>
+            </div>
+
+            <!-- Schedule tab -->
+            <div class="staff-content" id="tabSchedule">
+                <div class="staff-week-nav">
+                    <button type="button" class="staff-icon-btn" style="background:var(--gray-100); color:var(--dark);" onclick="changeStaffWeek(-1)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="week-label" id="weekLabel">-</div>
+                    <button type="button" class="staff-icon-btn" style="background:var(--gray-100); color:var(--dark);" onclick="changeStaffWeek(1)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div id="scheduleList"></div>
+            </div>
+
+            <!-- Requests tab -->
+            <div class="staff-content" id="tabRequests" style="display:none;">
+                <div id="requestsList"></div>
+            </div>
+
+            <button type="button" class="staff-fab" onclick="openRequestForm()" title="Request">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Request Form Modal -->
+    <div class="modal" id="requestModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-paper-plane"></i> <span data-lang="ja">シフト変更リクエスト</span><span data-lang="zh">排班变更申请</span></h3>
+                <button type="button" class="modal-close" onclick="closeStaffModal('requestModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label data-lang="ja">日付</label>
+                    <label data-lang="zh">日期</label>
+                    <input type="date" id="reqDate" class="input-field">
+                </div>
+                <div class="form-group">
+                    <label data-lang="ja">種類</label>
+                    <label data-lang="zh">类型</label>
+                    <div class="type-selector" id="reqTypeSelector">
+                        <button type="button" class="type-btn active" data-type="dayoff" onclick="setReqType('dayoff')">
+                            <i class="fas fa-umbrella-beach"></i>
+                            <span data-lang="ja">休み希望</span><span data-lang="zh">请假</span>
+                        </button>
+                        <button type="button" class="type-btn" data-type="time_change" onclick="setReqType('time_change')">
+                            <i class="fas fa-clock"></i>
+                            <span data-lang="ja">時間変更</span><span data-lang="zh">改时间</span>
+                        </button>
+                        <button type="button" class="type-btn" data-type="other" onclick="setReqType('other')">
+                            <i class="fas fa-comment"></i>
+                            <span data-lang="ja">その他</span><span data-lang="zh">其他</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="time-group" id="reqTimeGroup" style="display:none;">
+                    <div class="form-group">
+                        <label data-lang="ja">開始</label><label data-lang="zh">开始</label>
+                        <input type="time" id="reqStartTime" class="input-field" value="08:00">
+                    </div>
+                    <div class="form-group">
+                        <label data-lang="ja">終了</label><label data-lang="zh">结束</label>
+                        <input type="time" id="reqEndTime" class="input-field" value="17:00">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label data-lang="ja">メモ</label>
+                    <label data-lang="zh">备注</label>
+                    <textarea id="reqNote" class="input-field" rows="3" placeholder="..."></textarea>
+                </div>
+                <button type="button" class="btn-primary" style="width:100%;" onclick="submitStaffRequest()">
+                    <i class="fas fa-paper-plane"></i>
+                    <span data-lang="ja">送信</span><span data-lang="zh">提交</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyB6C3s4EAPEx0GBLnBXAz4aYJfoCBEyofc",
+            authDomain: "employee-schedule-893f5.firebaseapp.com",
+            databaseURL: "https://employee-schedule-893f5-default-rtdb.firebaseio.com",
+            projectId: "employee-schedule-893f5",
+            storageBucket: "employee-schedule-893f5.firebasestorage.app",
+            messagingSenderId: "377051530021",
+            appId: "1:377051530021:web:e3341a1a7bcdc89ad810cc"
+        };
+        firebase.initializeApp(firebaseConfig);
+        window.database = firebase.database();
+        window.auth = firebase.auth();
+    </script>
+    <script src="staff.js"></script>
+</body>
+</html>

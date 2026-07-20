@@ -20,3 +20,17 @@ Toàn bộ tính năng cũ được giữ nguyên.
 - Cần đã bật Email/Password ở Firebase Console → Authentication → Sign-in method.
 - Lưu ý kỹ thuật: 3 file Firebase SDK (app/database/auth) giờ tải qua CDN chính thức của Google (gstatic.com) thay vì host cục bộ như trước, vì file auth-compat.js quá lớn để nhúng trực tiếp. 2 file cục bộ cũ (firebase-app-compat.js, firebase-database-compat.js) không còn được dùng, có thể xoá khỏi thư mục hosting nếu muốn dọn dẹp.
 - Do giới hạn của Firebase phía client, admin có thể TẠO tài khoản mới nhưng không thể tự đổi mật khẩu người khác trực tiếp — nếu nhân viên quên mật khẩu, cần bấm "リンク解除" (解除关联) rồi tạo lại tài khoản mới.
+
+## Trang riêng cho nhân viên (staff.html) - MỚI
+Nhân viên vào file `staff.html` (ví dụ: `https://<domain-cua-ban>/staff.html`) để:
+- Đăng nhập bằng email/mật khẩu đã được admin tạo (mục "ログインアカウント" trong chi tiết nhân viên)
+- Xem lịch làm của CHÍNH MÌNH theo tuần (không thấy lịch người khác)
+- Gửi "リクエスト" (yêu cầu đổi lịch): xin nghỉ / đổi giờ làm / yêu cầu khác, kèm ghi chú
+- Theo dõi trạng thái yêu cầu: 審査中 (đang chờ) / 承認済み (đã duyệt) / 却下 (từ chối)
+
+## Quản lý yêu cầu (phía admin, trong index.html)
+- Biểu tượng chuông 🔔 ở góc trên bên phải header, có số đỏ báo số yêu cầu đang chờ duyệt
+- Bấm vào để xem danh sách, mỗi yêu cầu có 2 nút "承認" (duyệt) / "却下" (từ chối)
+- Khi DUYỆT: nếu là "xin nghỉ" hoặc "đổi giờ", hệ thống TỰ ĐỘNG cập nhật luôn vào lịch tuần (không cần vào sửa tay); nếu là "yêu cầu khác" thì chỉ đánh dấu đã duyệt, admin tự vào chỉnh lịch nếu cần
+
+Các file cần upload thêm lên hosting: `staff.html`, `staff.js` (cùng thư mục với `index.html`, `app.js`, `style.css`).

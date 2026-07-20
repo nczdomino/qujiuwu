@@ -1,6 +1,7 @@
 // ==================== GLOBAL VARIABLES ====================
 let employees = [];
 let schedules = {};
+let changeRequests = {}; // yêu cầu đổi lịch do nhân viên gửi từ trang staff.html
 let currentWeek = 0;
 let selectedEmployee = null;
 let selectedPosition = '前台/服务区';
@@ -52,6 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load data
     loadEmployees();
     loadSchedules();
+    loadChangeRequests();
     
     // Set up event listeners
     setupEventListeners();
@@ -1280,6 +1282,159 @@ function loadSchedules() {
     }, (error) => {
         console.error("Error loading schedules:", error);
         showMessage(`${currentLanguage === 'ja' ? 'スケジュールデータの読み込みエラー' : '加载排班数据错误'}: ${error.code || error.message || error}`, "error");
+    });
+}
+
+// ==================== YÊU CẦU ĐỔI LỊCH TỪ NHÂN VIÊN (gửi từ trang staff.html) ====================
+function loadChangeRequests() {
+    if (!window.database) return;
+    
+    window.database.ref('changeRequests').on('value', (snapshot) => {
+        changeRequests = snapshot.val() || {};
+        updateRequestsBadge();
+        renderChangeRequests();
+    }, (error) => {
+        console.error("Error loading change requests:", error);
+    });
+}
+
+function updateRequestsBadge() {
+    const pendingCount = Object.values(changeRequests).filter(r => r && r.status === 'pending').length;
+    const badge = document.getElementById('requestsBadge');
+    if (badge) {
+        badge.textContent = pendingCount;
+        badge.style.display = pendingCount > 0 ? 'flex' : 'none';
+    }
+}
+
+const requestTypeLabel = { 
+    dayoff: { ja: '休み希望', zh: '请假' }, 
+    time_change: { ja: '時間変更', zh: '改时间' }, 
+    other: { ja: 'その他', zh: '其他' } 
+};
+
+function renderChangeRequests() {
+    const container = document.getElementById('requestsListAdmin');
+    if (!container) return;
+    
+    const list = Object.entries(changeRequests)
+        .map(([id, r]) => ({ id, ...r }))
+        .filter(r => r && r.status)
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    
+    if (list.length === 0) {
+        container.innerHTML = `
+            <div class="staff-empty" style="padding: 40px 20px; text-align:center; color: var(--gray-400);">
+                <i class="fas fa-inbox" style="font-size:2rem; margin-bottom:10px; display:block;"></i>
+                <div>${currentLanguage === 'ja' ? 'リクエストはまだありません' : '还没有申请记录'}</div>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = list.map(r => {
+        const typeText = requestTypeLabel[r.type] ? requestTypeLabel[r.type][currentLanguage] : r.type;
+        const statusColor = r.status === 'pending' ? 'warning' : (r.status === 'approved' ? 'success' : 'danger');
+        const statusText = r.status === 'pending' 
+            ? (currentLanguage === 'ja' ? '審査中' : '待审核') 
+            : (r.status === 'approved' ? (currentLanguage === 'ja' ? '承認済み' : '已批准') : (currentLanguage === 'ja' ? '却下' : '已拒绝'));
+        
+        return `
+            <div class="request-item">
+                <div class="request-item-top">
+                    <div>
+                        <strong>${r.employeeName || '?'}</strong>
+                        <span style="color: var(--gray-500); font-size:12px;">· ${formatDate(r.date)} · ${typeText}</span>
+                    </div>
+                    <span class="request-status-badge" style="background: var(--${statusColor}-light); color: var(--${statusColor});">${statusText}</span>
+                </div>
+                ${r.type === 'time_change' && r.requestedStartTime ? `<div class="request-item-body">${r.requestedStartTime} - ${r.requestedEndTime}</div>` : ''}
+                ${r.note ? `<div class="request-item-body">${r.note}</div>` : ''}
+                ${r.status === 'pending' ? `
+                    <div class="request-item-actions">
+                        <button type="button" class="btn-action" style="background: var(--success-light); color: var(--success);" onclick="approveChangeRequest('${r.id}')">
+                            <i class="fas fa-check"></i> ${currentLanguage === 'ja' ? '承認' : '批准'}
+                        </button>
+                        <button type="button" class="btn-action" style="background: var(--danger-light); color: var(--danger);" onclick="rejectChangeRequest('${r.id}')">
+                            <i class="fas fa-xmark"></i> ${currentLanguage === 'ja' ? '却下' : '拒绝'}
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+function showRequestsModal() {
+    renderChangeRequests();
+    openModal('requestsModal');
+}
+
+// Duyệt yêu cầu: tự động áp dụng thay đổi vào lịch (nếu là xin nghỉ / đổi giờ), rồi đánh dấu approved
+function approveChangeRequest(requestId) {
+    const request = changeRequests[requestId];
+    if (!request) return;
+    
+    if (!window.database) {
+        showMessage(currentLanguage === 'ja' ? "データベース接続エラー" : "数据库连接错误", "error");
+        return;
+    }
+    
+    const employee = employees.find(e => e.id === request.employeeId);
+    const updates = {};
+    
+    if (employee && (request.type === 'dayoff' || request.type === 'time_change')) {
+        const existing = findScheduleByEmployeeAndDate(request.employeeId, request.date);
+        const scheduleData = {
+            employeeId: request.employeeId,
+            employeeName: request.employeeName,
+            employeePosition: existing ? existing.employeePosition : employee.position,
+            date: request.date,
+            isDayOff: request.type === 'dayoff',
+            updatedAt: Date.now()
+        };
+        if (request.type === 'dayoff') {
+            scheduleData.startTime = '00:00';
+            scheduleData.endTime = '00:00';
+            scheduleData.notes = currentLanguage === 'ja' ? '休み' : '休息';
+        } else {
+            scheduleData.startTime = request.requestedStartTime || '08:00';
+            scheduleData.endTime = request.requestedEndTime || '17:00';
+        }
+        const scheduleId = existing ? existing.id : window.database.ref('schedules').push().key;
+        if (!existing) scheduleData.createdAt = Date.now();
+        updates[`schedules/${scheduleId}`] = scheduleData;
+    }
+    
+    updates[`changeRequests/${requestId}/status`] = 'approved';
+    updates[`changeRequests/${requestId}/reviewedAt`] = Date.now();
+    
+    window.database.ref().update(updates)
+    .then(() => {
+        showMessage(currentLanguage === 'ja' ? '承認してスケジュールに反映しました' : '已批准并应用到排班', 'success');
+    })
+    .catch(error => {
+        showMessage((currentLanguage === 'ja' ? '設定失敗: ' : '设置失败: ') + error.message, 'error');
+    });
+}
+
+function rejectChangeRequest(requestId) {
+    if (!changeRequests[requestId]) return;
+    
+    if (!window.database) {
+        showMessage(currentLanguage === 'ja' ? "データベース接続エラー" : "数据库连接错误", "error");
+        return;
+    }
+    
+    window.database.ref(`changeRequests/${requestId}`).update({
+        status: 'rejected',
+        reviewedAt: Date.now()
+    })
+    .then(() => {
+        showMessage(currentLanguage === 'ja' ? 'リクエストを却下しました' : '已拒绝该申请', 'success');
+    })
+    .catch(error => {
+        showMessage((currentLanguage === 'ja' ? '設定失敗: ' : '设置失败: ') + error.message, 'error');
     });
 }
 
