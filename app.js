@@ -2825,7 +2825,7 @@ function copyScheduleAsText(employeeIdParam) {
     
     // Generate formatted text
     let text = `【${employee.name} ${currentLanguage === 'ja' ? 'スケジュール' : '排班表'}】\n`;
-    text += `${currentLanguage === 'ja' ? '職種:' : '职位:'} ${positionLabel(employee.position)}\n`;
+    text += `${currentLanguage === 'ja' ? '基本職種:' : '基本职位:'} ${positionLabel(employee.position)}\n`;
     text += `${currentLanguage === 'ja' ? '日付:' : '日期:'} ${formatDate(startDate)} ${currentLanguage === 'ja' ? '〜' : '至'} ${formatDate(endDate)}\n`;
     text += `${currentLanguage === 'ja' ? '今週:' : '本周:'} ${weeklyHours}${currentLanguage === 'ja' ? '時間' : '小时'} | ${currentLanguage === 'ja' ? '今月:' : '本月:'} ${monthlyHours}${currentLanguage === 'ja' ? '時間' : '小时'}\n\n`;
     text += `📅 ${currentLanguage === 'ja' ? '今週のスケジュール:' : '本周排班:'}\n`;
@@ -2837,15 +2837,23 @@ function copyScheduleAsText(employeeIdParam) {
     
     days.forEach((day, index) => {
         const schedule = weekSchedule.find(s => s.date === day.dateString);
-        const scheduleText = schedule ? 
-            (schedule.isDayOff ? '🏖️ ' + (currentLanguage === 'ja' ? '休み' : '休息') : `🕐 ${schedule.startTime ? schedule.startTime.substring(0, 5) : ''}-${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}`) : 
-            '📭 ' + (currentLanguage === 'ja' ? 'なし' : '无');
+        let scheduleText;
+        if (schedule) {
+            if (schedule.isDayOff) {
+                scheduleText = '🏖️ ' + (currentLanguage === 'ja' ? '休み' : '休息');
+            } else {
+                const timeStr = `🕐 ${schedule.startTime ? schedule.startTime.substring(0, 5) : ''}-${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}`;
+                const dayPos = positionLabel(schedule.employeePosition || employee.position);
+                scheduleText = `${timeStr} · 📍${dayPos}`;
+            }
+        } else {
+            scheduleText = '📭 ' + (currentLanguage === 'ja' ? 'なし' : '无');
+        }
         
         text += `${dayNames[index]} (${day.date}): ${scheduleText}\n`;
     });
     
-    text += `\n📍 ${currentLanguage === 'ja' ? '勤務エリア:' : '工作区域:'} ${positionLabel(employee.position)}\n`;
-    text += `📊 ${currentLanguage === 'ja' ? '今週:' : '本周:'} ${weekSchedule.filter(s => !s.isDayOff).length}${currentLanguage === 'ja' ? '勤務日' : '工作日'}, ${weekSchedule.filter(s => s.isDayOff).length}${currentLanguage === 'ja' ? '休日' : '休息日'}\n`;
+    text += `\n📊 ${currentLanguage === 'ja' ? '今週:' : '本周:'} ${weekSchedule.filter(s => !s.isDayOff).length}${currentLanguage === 'ja' ? '勤務日' : '工作日'}, ${weekSchedule.filter(s => s.isDayOff).length}${currentLanguage === 'ja' ? '休日' : '休息日'}\n`;
     text += `\n⏰ ${currentLanguage === 'ja' ? '生成日時:' : '生成时间:'} ${new Date().toLocaleString(currentLanguage === 'ja' ? 'ja-JP' : 'zh-CN', { 
         year: 'numeric', 
         month: '2-digit', 
