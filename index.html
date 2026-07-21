@@ -38,6 +38,63 @@
             color: white;
         }
         
+        .auth-gate {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9000;
+            padding: 20px;
+        }
+        
+        .auth-gate-box {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            border-radius: var(--border-radius-lg, 16px);
+            box-shadow: var(--shadow-lg, 0 20px 25px -5px rgba(0,0,0,0.2));
+            padding: 32px 26px;
+        }
+        
+        .auth-gate-logo { text-align: center; margin-bottom: 22px; }
+        .auth-gate-logo i { font-size: 2.4rem; color: var(--primary, #2563eb); margin-bottom: 10px; }
+        .auth-gate-logo h1 { font-size: 1.1rem; color: var(--dark, #1e293b); margin: 4px 0; }
+        .auth-gate-logo p { font-size: 12.5px; color: var(--gray-500, #64748b); }
+        
+        .auth-gate-note {
+            background: var(--info-light, #dbeafe);
+            color: var(--info, #2563eb);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 12px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .auth-gate-error {
+            display: none;
+            background: var(--danger-light, #fee2e2);
+            color: var(--danger, #ef4444);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 12.5px;
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+        
+        .auth-gate-link {
+            background: none;
+            border: none;
+            color: var(--primary, #2563eb);
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
         .loading-spinner {
             width: 50px;
             height: 50px;
@@ -73,8 +130,93 @@
         <p style="margin-top: 10px; opacity: 0.8;">鍛治町酒場 神田店 勤務表</p>
     </div>
 
+    <!-- Admin Auth Gate: chặn không cho ai vào trang chính nếu chưa đăng nhập đúng quyền admin -->
+    <div id="adminAuthGate" class="auth-gate">
+        <div class="auth-gate-box">
+            <div class="auth-gate-logo">
+                <i class="fas fa-lock"></i>
+                <h1>鍛治町酒場 神田店</h1>
+                <p data-lang="ja">管理画面ログイン</p>
+                <p data-lang="zh" style="display:none">管理后台登录</p>
+            </div>
+
+            <!-- Trạng thái đang kiểm tra -->
+            <div id="gateChecking" style="text-align:center; padding: 30px 0;">
+                <i class="fas fa-spinner fa-spin" style="font-size:1.6rem; color: var(--primary);"></i>
+            </div>
+
+            <!-- Lần đầu chưa có admin nào -> tạo tài khoản admin đầu tiên -->
+            <div id="gateSetup" style="display:none;">
+                <div class="auth-gate-note">
+                    <i class="fas fa-circle-info"></i>
+                    <span data-lang="ja">初回設定：管理者アカウントを作成してください（本物のメールを推奨、パスワードを忘れた際に再設定できます）</span>
+                    <span data-lang="zh" style="display:none">首次设置：请创建管理员账号（建议用真实邮箱，方便忘记密码时找回）</span>
+                </div>
+                <div class="auth-gate-error" id="setupError"></div>
+                <div class="form-group">
+                    <label data-lang="ja">メールアドレス</label>
+                    <label data-lang="zh" style="display:none">邮箱</label>
+                    <input type="email" id="setupEmail" class="input-field" placeholder="you@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label data-lang="ja">パスワード（6文字以上）</label>
+                    <label data-lang="zh" style="display:none">密码（至少6位）</label>
+                    <input type="password" id="setupPassword" class="input-field" placeholder="••••••">
+                </div>
+                <div class="form-group">
+                    <label data-lang="ja">パスワード確認</label>
+                    <label data-lang="zh" style="display:none">确认密码</label>
+                    <input type="password" id="setupPasswordConfirm" class="input-field" placeholder="••••••">
+                </div>
+                <button type="button" class="btn-primary" style="width:100%;" onclick="adminSetupSubmit()">
+                    <i class="fas fa-user-shield"></i>
+                    <span data-lang="ja">管理者アカウントを作成</span>
+                    <span data-lang="zh" style="display:none">创建管理员账号</span>
+                </button>
+            </div>
+
+            <!-- Màn hình đăng nhập bình thường -->
+            <div id="gateLogin" style="display:none;">
+                <div class="auth-gate-error" id="loginGateError"></div>
+                <div class="form-group">
+                    <label data-lang="ja">メールアドレス</label>
+                    <label data-lang="zh" style="display:none">邮箱</label>
+                    <input type="email" id="gateEmail" class="input-field" placeholder="you@gmail.com" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label data-lang="ja">パスワード</label>
+                    <label data-lang="zh" style="display:none">密码</label>
+                    <input type="password" id="gatePassword" class="input-field" placeholder="••••••" autocomplete="current-password">
+                </div>
+                <button type="button" class="btn-primary" style="width:100%;" onclick="adminLoginSubmit()">
+                    <i class="fas fa-right-to-bracket"></i>
+                    <span data-lang="ja">ログイン</span>
+                    <span data-lang="zh" style="display:none">登录</span>
+                </button>
+                <div style="text-align:center; margin-top:14px;">
+                    <button type="button" class="auth-gate-link" onclick="adminForgotPassword()">
+                        <span data-lang="ja">パスワードをお忘れですか？</span>
+                        <span data-lang="zh" style="display:none">忘记密码？</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Đăng nhập được nhưng không có quyền admin -->
+            <div id="gateDenied" style="display:none; text-align:center;">
+                <i class="fas fa-ban" style="font-size:2rem; color: var(--danger); margin-bottom:12px; display:block;"></i>
+                <p style="color: var(--gray-600); margin-bottom:16px;" data-lang="ja">このアカウントには管理者権限がありません。</p>
+                <p style="color: var(--gray-600); margin-bottom:16px; display:none;" data-lang="zh">此账号没有管理员权限。</p>
+                <button type="button" class="btn-secondary" style="width:100%;" onclick="window.auth.signOut()">
+                    <i class="fas fa-right-from-bracket"></i>
+                    <span data-lang="ja">ログアウト</span>
+                    <span data-lang="zh" style="display:none">退出登录</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Main App -->
-    <div class="app">
+    <div class="app" id="mainApp" style="display:none;">
         <!-- Header -->
         <header class="header">
             <div class="header-content">
@@ -83,6 +225,9 @@
                     <button type="button" class="requests-bell no-print" onclick="showRequestsModal()" title="Requests">
                         <i class="fas fa-bell"></i>
                         <span class="requests-badge" id="requestsBadge" style="display:none;">0</span>
+                    </button>
+                    <button type="button" class="requests-bell no-print" onclick="showAdminManageModal()" title="Admins">
+                        <i class="fas fa-user-shield"></i>
                     </button>
                     <div class="language-switcher no-print">
                         <button class="lang-btn" id="languageSwitch">
@@ -94,6 +239,9 @@
                         <i class="fas fa-wifi"></i>
                         <span>接続済み</span>
                     </div>
+                    <button type="button" class="requests-bell no-print" onclick="window.auth.signOut()" title="Logout">
+                        <i class="fas fa-right-from-bracket"></i>
+                    </button>
                 </div>
             </div>
             <div class="current-date" id="currentDate"></div>
@@ -411,6 +559,41 @@
                     <i class="fas fa-plus"></i> 
                     <span data-lang="ja">追加</span>
                     <span data-lang="zh" style="display:none">添加</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Management Modal -->
+    <div class="modal" id="adminManageModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-shield"></i> <span data-lang="ja">管理者アカウント</span><span data-lang="zh" style="display:none">管理员账号</span></h3>
+                <button type="button" class="modal-close" onclick="closeModal('adminManageModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="adminList" style="margin-bottom: 20px;"></div>
+                <hr style="border: none; border-top: 1px solid var(--border); margin: 16px 0;">
+                <div style="font-weight:700; margin-bottom:10px; color: var(--dark);">
+                    <span data-lang="ja">＋ 新しい管理者を追加</span>
+                    <span data-lang="zh" style="display:none">＋ 添加新管理员</span>
+                </div>
+                <div class="auth-gate-error" id="addAdminError"></div>
+                <div class="form-group">
+                    <label data-lang="ja">メールアドレス</label>
+                    <label data-lang="zh" style="display:none">邮箱</label>
+                    <input type="email" id="newAdminEmail" class="input-field" placeholder="manager2@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label data-lang="ja">パスワード（6文字以上）</label>
+                    <label data-lang="zh" style="display:none">密码（至少6位）</label>
+                    <input type="text" id="newAdminPassword" class="input-field" placeholder="••••••">
+                </div>
+                <button type="button" class="btn-primary" style="width:100%;" onclick="addNewAdmin()">
+                    <i class="fas fa-user-plus"></i>
+                    <span data-lang="ja">追加</span><span data-lang="zh" style="display:none">添加</span>
                 </button>
             </div>
         </div>

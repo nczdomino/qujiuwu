@@ -47,6 +47,16 @@ document.addEventListener('DOMContentLoaded', function() {
         currentLanguage = savedLanguage;
     }
     
+    // Trang chính giờ được bảo vệ bằng đăng nhập admin (Firebase Auth). Chỉ khi xác thực
+    // xong VÀ đúng quyền admin thì startApp() mới thực sự chạy (xem initAdminAuthGate()).
+    initAdminAuthGate();
+});
+
+let appStarted = false;
+function startApp() {
+    if (appStarted) return; // tránh load 2 lần nếu onAuthStateChanged bắn lại
+    appStarted = true;
+    
     // Initialize the app
     initApp();
     
@@ -58,8 +68,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up event listeners
     setupEventListeners();
     
+    // Tự động làm mới hiển thị "tổng số người đang làm hôm nay" + trạng thái "đã tan làm"
+    // mỗi phút một lần, vì 2 thông tin này phụ thuộc vào giờ thực tế chứ không phải sự kiện
+    // từ database (không đổi giờ thì sẽ không có tín hiệu nào báo re-render cả).
+    setInterval(() => {
+        renderWeeklySchedule();
+        const todayModal = document.getElementById('todayModal');
+        if (todayModal && todayModal.style.display === 'flex') {
+            showTodaySchedule();
+        }
+    }, 60 * 1000);
+    
     console.log("✅ アプリ初期化完了");
-});
+}
 
 function initApp() {
     const today = new Date();
@@ -83,6 +104,219 @@ function initApp() {
     
     // Set auto-refresh for date
     setInterval(updateCurrentDate, 60000);
+}
+
+// ==================== ADMIN AUTH GATE (bảo vệ trang chính bằng đăng nhập) ====================
+function showGatePanel(panel) {
+    ['gateChecking', 'gateSetup', 'gateLogin', 'gateDenied'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = (id === panel) ? 'block' : 'none';
+    });
+}
+
+function initAdminAuthGate() {
+    if (!window.auth || !window.database) {
+        // Lỗi cấu hình Firebase thì vẫn cho vào để không khoá cứng người dùng khi có sự cố kỹ thuật
+        console.error("Auth/Database chưa sẵn sàng - bỏ qua cổng đăng nhập admin");
+        document.getElementById('adminAuthGate').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'flex';
+        startApp();
+        return;
+    }
+    
+    window.auth.onAuthStateChanged(user => {
+        if (user) {
+            window.database.ref(`admins/${user.uid}`).once('value').then(snap => {
+                if (snap.exists()) {
+                    document.getElementById('adminAuthGate').style.display = 'none';
+                    document.getElementById('mainApp').style.display = 'flex';
+                    startApp();
+                } else {
+                    document.getElementById('mainApp').style.display = 'none';
+                    document.getElementById('adminAuthGate').style.display = 'flex';
+                    showGatePanel('gateDenied');
+                }
+            }).catch(error => {
+                console.error("Admin check error:", error);
+                showGatePanel('gateDenied');
+            });
+        } else {
+            document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('adminAuthGate').style.display = 'flex';
+            // Chưa đăng nhập -> kiểm tra đã từng có admin nào được tạo chưa để quyết định
+            // hiện màn hình "tạo admin đầu tiên" hay màn hình đăng nhập bình thường.
+            window.database.ref('admins').once('value').then(snap => {
+                const hasAdmins = snap.exists() && Object.keys(snap.val() || {}).length > 0;
+                showGatePanel(hasAdmins ? 'gateLogin' : 'gateSetup');
+            }).catch(error => {
+                console.error("Admins list check error:", error);
+                showGatePanel('gateLogin');
+            });
+        }
+    });
+}
+
+function adminSetupSubmit() {
+    const email = document.getElementById('setupEmail').value.trim();
+    const password = document.getElementById('setupPassword').value;
+    const confirmPassword = document.getElementById('setupPasswordConfirm').value;
+    const errorBox = document.getElementById('setupError');
+    errorBox.style.display = 'none';
+    
+    if (!email || !password) {
+        errorBox.textContent = currentLanguage === 'ja' ? 'メールとパスワードを入力してください' : '请输入邮箱和密码';
+        errorBox.style.display = 'block';
+        return;
+    }
+    if (password.length < 6) {
+        errorBox.textContent = currentLanguage === 'ja' ? 'パスワードは6文字以上にしてください' : '密码至少需要6位';
+        errorBox.style.display = 'block';
+        return;
+    }
+    if (password !== confirmPassword) {
+        errorBox.textContent = currentLanguage === 'ja' ? 'パスワードが一致しません' : '两次密码不一致';
+        errorBox.style.display = 'block';
+        return;
+    }
+    
+    // Ở bước setup lần đầu chưa có ai đăng nhập cả nên dùng thẳng app chính cũng an toàn
+    // (không có phiên nào để làm mất).
+    window.auth.createUserWithEmailAndPassword(email, password)
+    .then(cred => {
+        return window.database.ref(`admins/${cred.user.uid}`).set({ email, createdAt: Date.now() });
+    })
+    .catch(error => {
+        let msg = error.message;
+        if (error.code === 'auth/email-already-in-use') {
+            msg = currentLanguage === 'ja' ? 'このメールは既に使われています' : '该邮箱已被使用';
+        } else if (error.code === 'auth/weak-password') {
+            msg = currentLanguage === 'ja' ? 'パスワードが弱すぎます' : '密码强度不够';
+        } else if (error.code === 'auth/invalid-email') {
+            msg = currentLanguage === 'ja' ? 'メールアドレスの形式が正しくありません' : '邮箱格式不正确';
+        }
+        errorBox.textContent = msg;
+        errorBox.style.display = 'block';
+    });
+}
+
+function adminLoginSubmit() {
+    const email = document.getElementById('gateEmail').value.trim();
+    const password = document.getElementById('gatePassword').value;
+    const errorBox = document.getElementById('loginGateError');
+    errorBox.style.display = 'none';
+    
+    if (!email || !password) {
+        errorBox.textContent = currentLanguage === 'ja' ? 'メールとパスワードを入力してください' : '请输入邮箱和密码';
+        errorBox.style.display = 'block';
+        return;
+    }
+    
+    window.auth.signInWithEmailAndPassword(email, password)
+    .catch(error => {
+        let msg = error.message;
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+            msg = currentLanguage === 'ja' ? 'メールまたはパスワードが正しくありません' : '邮箱或密码不正确';
+        }
+        errorBox.textContent = msg;
+        errorBox.style.display = 'block';
+    });
+}
+
+function adminForgotPassword() {
+    const email = document.getElementById('gateEmail').value.trim();
+    const errorBox = document.getElementById('loginGateError');
+    
+    if (!email) {
+        errorBox.textContent = currentLanguage === 'ja' ? '先にメールアドレスを入力してください' : '请先输入邮箱';
+        errorBox.style.display = 'block';
+        return;
+    }
+    
+    window.auth.sendPasswordResetEmail(email)
+    .then(() => {
+        errorBox.style.background = 'var(--success-light)';
+        errorBox.style.color = 'var(--success)';
+        errorBox.textContent = currentLanguage === 'ja' 
+            ? 'パスワード再設定メールを送信しました。メールをご確認ください。' 
+            : '密码重置邮件已发送，请查收邮箱。';
+        errorBox.style.display = 'block';
+    })
+    .catch(error => {
+        errorBox.style.background = '';
+        errorBox.style.color = '';
+        errorBox.textContent = currentLanguage === 'ja' ? '送信失敗: そのメールの登録がありません' : '发送失败：该邮箱未注册';
+        errorBox.style.display = 'block';
+    });
+}
+
+// ==================== QUẢN LÝ ADMIN (thêm quản trị viên khác) ====================
+function showAdminManageModal() {
+    const listEl = document.getElementById('adminList');
+    const errorEl = document.getElementById('addAdminError');
+    if (errorEl) errorEl.style.display = 'none';
+    
+    if (listEl) {
+        listEl.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+        window.database.ref('admins').once('value').then(snap => {
+            const data = snap.val() || {};
+            const admins = Object.values(data);
+            listEl.innerHTML = admins.length === 0 
+                ? `<div style="color: var(--gray-400); font-size:13px;">-</div>`
+                : admins.map(a => `
+                    <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom: 1px solid var(--border);">
+                        <i class="fas fa-user-shield" style="color: var(--primary);"></i>
+                        <span style="font-size:13px; color: var(--dark);">${a.email}</span>
+                    </div>
+                `).join('');
+        });
+    }
+    
+    openModal('adminManageModal');
+}
+
+function addNewAdmin() {
+    const email = document.getElementById('newAdminEmail').value.trim();
+    const password = document.getElementById('newAdminPassword').value;
+    const errorBox = document.getElementById('addAdminError');
+    errorBox.style.display = 'none';
+    
+    if (!email || !password) {
+        errorBox.textContent = currentLanguage === 'ja' ? 'メールとパスワードを入力してください' : '请输入邮箱和密码';
+        errorBox.style.display = 'block';
+        return;
+    }
+    if (password.length < 6) {
+        errorBox.textContent = currentLanguage === 'ja' ? 'パスワードは6文字以上にしてください' : '密码至少需要6位';
+        errorBox.style.display = 'block';
+        return;
+    }
+    if (!window.secondaryApp) {
+        errorBox.textContent = currentLanguage === 'ja' ? 'システムエラー' : '系统错误';
+        errorBox.style.display = 'block';
+        return;
+    }
+    
+    // Dùng app phụ để tạo tài khoản admin mới, tránh làm mất phiên đăng nhập admin hiện tại
+    window.secondaryApp.auth().createUserWithEmailAndPassword(email, password)
+    .then(cred => {
+        const uid = cred.user.uid;
+        return window.secondaryApp.auth().signOut().then(() => uid);
+    })
+    .then(uid => window.database.ref(`admins/${uid}`).set({ email, createdAt: Date.now() }))
+    .then(() => {
+        showMessage(currentLanguage === 'ja' ? '管理者を追加しました' : '管理员添加成功', 'success');
+        document.getElementById('newAdminEmail').value = '';
+        document.getElementById('newAdminPassword').value = '';
+        showAdminManageModal();
+    })
+    .catch(error => {
+        let msg = error.message;
+        if (error.code === 'auth/email-already-in-use') {
+            msg = currentLanguage === 'ja' ? 'このメールは既に使われています' : '该邮箱已被使用';
+        }
+        errorBox.textContent = msg;
+        errorBox.style.display = 'block';
+    });
 }
 
 // ==================== LANGUAGE FUNCTIONS ====================
@@ -527,16 +761,59 @@ function renderEmployeeCards() {
 // Trả về mảng 7 phần tử mô tả trạng thái từng ngày trong tuần của 1 nhân viên
 // status: 'work' | 'rest' | 'none'
 // Đếm số người đang làm việc (không tính nghỉ) ở Front-desk và Bếp trong 1 ngày cụ thể
+// ==================== TRẠNG THÁI "ĐANG LÀM / ĐÃ TAN LÀM" (chỉ áp dụng cho hôm nay, theo giờ thực) ====================
+function todayDateString() {
+    return new Date().toISOString().split('T')[0];
+}
+
+function timeToMinutes(timeStr) {
+    if (!timeStr) return null;
+    const [h, m] = timeStr.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return null;
+    return h * 60 + m;
+}
+
+// Ca có đang trong khoảng giờ làm việc TẠI THỜI ĐIỂM HIỆN TẠI hay không (dùng để biết ai
+// còn đang làm / ai đã tan làm). "00:00" ở giờ kết thúc được hiểu là nửa đêm (hết ngày,
+// tức 24:00), không phải đầu ngày.
+function isScheduleCurrentlyActive(schedule) {
+    if (!schedule || schedule.isDayOff) return false;
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const startMinutes = timeToMinutes(schedule.startTime);
+    let endMinutes = timeToMinutes(schedule.endTime);
+    if (startMinutes === null || endMinutes === null) return true; // thiếu giờ thì coi như vẫn tính (an toàn)
+    if (endMinutes <= startMinutes) endMinutes += 24 * 60; // ca qua đêm (VD 17:00 - 00:00)
+    return nowMinutes >= startMinutes && nowMinutes < endMinutes;
+}
+
+// Ca của hôm nay đã kết thúc (tan làm) hay chưa - dùng để hiển thị nhãn "退勤済み"
+function hasScheduleEnded(schedule) {
+    if (!schedule || schedule.isDayOff) return false;
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const startMinutes = timeToMinutes(schedule.startTime);
+    let endMinutes = timeToMinutes(schedule.endTime);
+    if (startMinutes === null || endMinutes === null) return false;
+    if (endMinutes <= startMinutes) endMinutes += 24 * 60;
+    return nowMinutes >= endMinutes;
+}
+
 function getDayHeadcount(dateString) {
     const result = {};
     POSITIONS.forEach(pos => { result[pos.key] = 0; });
     if (!schedules || typeof schedules !== 'object') return result;
     
+    const isToday = dateString === todayDateString();
+    
     Object.values(schedules).forEach(s => {
-        if (s && s.date === dateString && !s.isDayOff) {
-            const key = getPositionInfo(s.employeePosition).key;
-            result[key] = (result[key] || 0) + 1;
-        }
+        if (!s || s.date !== dateString || s.isDayOff) return;
+        // Với NGÀY HÔM NAY: chỉ tính những người ĐANG trong ca làm tại thời điểm hiện tại
+        // (ai đã tan làm rồi thì không tính vào tổng nữa). Ngày khác (quá khứ/tương lai)
+        // vẫn giữ nguyên logic đếm cả ngày như cũ.
+        if (isToday && !isScheduleCurrentlyActive(s)) return;
+        const key = getPositionInfo(s.employeePosition).key;
+        result[key] = (result[key] || 0) + 1;
     });
     
     return result;
@@ -3016,23 +3293,25 @@ function showTodaySchedule() {
 
 function createTodayItem(schedule) {
     const position = positionLabel(schedule.employeePosition);
+    const finished = !schedule.isDayOff && hasScheduleEnded(schedule);
     
     return `
-        <div class="today-item ${schedule.isDayOff ? 'rest' : 'work'}">
+        <div class="today-item ${schedule.isDayOff ? 'rest' : 'work'} ${finished ? 'finished' : ''}">
             <div>
                 <div style="font-weight: 700; color: var(--dark);">${schedule.employeeName}</div>
                 <div style="font-size: 13px; color: var(--gray-500); font-weight: 500;">${position}</div>
             </div>
             <div style="text-align: right;">
-                <div style="font-weight: 700; color: ${schedule.isDayOff ? 'var(--warning)' : 'var(--success)'};">
+                <div style="font-weight: 700; color: ${schedule.isDayOff ? 'var(--warning)' : (finished ? 'var(--gray-400)' : 'var(--success)')};">
                     ${schedule.isDayOff ? 
                         (currentLanguage === 'ja' ? '休み' : '休息') : 
                         `${schedule.startTime ? schedule.startTime.substring(0, 5) : ''} - ${schedule.endTime ? schedule.endTime.substring(0, 5) : ''}`}
                 </div>
                 ${!schedule.isDayOff ? `
                     <div style="font-size: 12px; color: var(--gray-500); font-weight: 500;">
-                        ${currentLanguage === 'ja' ? '時間:' : '时间:'} ${calculateShiftHours(schedule.startTime, schedule.endTime)}h
-                        ${shiftPeriodLabel(schedule.startTime) ? ' · ' + shiftPeriodLabel(schedule.startTime) : ''}
+                        ${finished 
+                            ? `<span style="color: var(--gray-400); font-weight: 700;"><i class="fas fa-door-closed"></i> ${currentLanguage === 'ja' ? '退勤済み' : '已下班'}</span>`
+                            : `${currentLanguage === 'ja' ? '時間:' : '时间:'} ${calculateShiftHours(schedule.startTime, schedule.endTime)}h${shiftPeriodLabel(schedule.startTime) ? ' · ' + shiftPeriodLabel(schedule.startTime) : ''}`}
                     </div>
                 ` : ''}
             </div>
