@@ -1950,7 +1950,7 @@ body {
     
     .weekly-schedule {
         max-height: calc(100vh - 180px - 88px);
-        padding-bottom: 12px;
+        padding-bottom: 45px;
     }
     
     .week-header, .week-row, .week-position-header {
